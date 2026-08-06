@@ -11,6 +11,12 @@ const MODAL = {
   title: "Card Cover",
   url: "./editor.html",
   height: 640,
+  // Trello renders the modal's title bar itself, outside this iframe, so no
+  // CSS of ours can reach it. `accentColor` is the only lever: it sets that
+  // bar's background, and Trello picks white title text against a dark one.
+  // Matching the editor's own ground makes the bar read as part of the panel
+  // instead of a washed-out strip above it.
+  accentColor: "#1D2125",
 };
 
 export default function CoverStudio({ t }) {
