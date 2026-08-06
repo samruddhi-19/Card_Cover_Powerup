@@ -9,6 +9,7 @@ import {
 import { getSettings, saveSettings } from "../lib/settings.js";
 import {
   SOLID_COLORS,
+  TRELLO_COLORS,
   GRADIENTS,
   gradientCss,
   coverFileName,
@@ -212,7 +213,7 @@ export default function CoverEditor({ t }) {
           <span className="ce-preview__label">{cardName || "Card preview"}</span>
           {selection && (
             <span className="ce-preview__badge">
-              {selection.kind === "solid" && selection.trello ? "Native" : "Upload"}
+              {selection.trello ? "Exact · instant" : "Exact · attached"}
             </span>
           )}
         </div>
@@ -263,34 +264,40 @@ export default function CoverEditor({ t }) {
           <div role="tabpanel" id="ce-panel-color" aria-labelledby="ce-tab-color">
             <section className="ce-section">
               <div className="ce-section__head">
-                <h2 className="ce-section__title">Solid colors</h2>
+                <h2 className="ce-section__title">Trello colors</h2>
                 <span className="ce-section__rule" />
-                <span className="ce-section__note">Palette presets</span>
+                <span className="ce-section__note">Instant · no attachment</span>
               </div>
-              <div className="ce-solids" role="radiogroup" aria-label="Solid colors">
-                {SOLID_COLORS.map((color) => {
-                  const checked =
-                    selection?.kind === "solid" && selection.id === color.id;
-                  return (
-                    <button
-                      key={color.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={checked}
-                      aria-label={color.label}
-                      disabled={busy}
-                      onClick={() => setSelection({ kind: "solid", ...color })}
-                      className="ce-solid"
-                      style={{ background: color.hex, color: readableInk(color.hex) }}
-                    >
-                      <span className="ce-check">
-                        <CheckIcon width={12} height={12} />
-                      </span>
-                      {/* Flags the slower path so the choice is informed. */}
-                      {!color.trello && <span className="ce-badge-upload">Upload</span>}
-                    </button>
-                  );
-                })}
+              <div className="ce-solids" role="radiogroup" aria-label="Trello colors">
+                {TRELLO_COLORS.map((color) => (
+                  <Swatch
+                    key={color.id}
+                    color={color}
+                    checked={selection?.kind === "solid" && selection.id === color.id}
+                    disabled={busy}
+                    onSelect={() => setSelection({ kind: "solid", ...color })}
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section className="ce-section">
+              <div className="ce-section__head">
+                <h2 className="ce-section__title">Custom colors</h2>
+                <span className="ce-section__rule" />
+                <span className="ce-section__note">Rendered &amp; attached</span>
+              </div>
+              <div className="ce-solids" role="radiogroup" aria-label="Custom colors">
+                {SOLID_COLORS.map((color) => (
+                  <Swatch
+                    key={color.id}
+                    color={color}
+                    checked={selection?.kind === "solid" && selection.id === color.id}
+                    disabled={busy}
+                    onSelect={() => setSelection({ kind: "solid", ...color })}
+                    badge="Image"
+                  />
+                ))}
               </div>
             </section>
 
@@ -457,6 +464,27 @@ export default function CoverEditor({ t }) {
         </button>
       </div>
     </div>
+  );
+}
+
+function Swatch({ color, checked, disabled, onSelect, badge }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={checked}
+      aria-label={color.label}
+      title={color.label}
+      disabled={disabled}
+      onClick={onSelect}
+      className="ce-solid"
+      style={{ background: color.hex, color: readableInk(color.hex) }}
+    >
+      <span className="ce-check">
+        <CheckIcon width={12} height={12} />
+      </span>
+      {badge && <span className="ce-badge-upload">{badge}</span>}
+    </button>
   );
 }
 

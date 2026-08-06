@@ -5,18 +5,40 @@
 // to an image and uploaded (see coverRender.js). `trello` below marks the
 // swatches that can take the instant native path; the rest cost one upload.
 
+// Trello's ten cover colours at their true hex values. Because the swatch is
+// the exact colour Trello will paint, these can take the native path: instant,
+// and no attachment added to the card.
+//
+// `trello` is set ONLY where the swatch hex is genuinely that Trello colour.
+// An earlier version mapped custom hexes to the "nearest" Trello colour, which
+// meant picking Teal painted the card Sky — the swatch lied about the result.
+export const TRELLO_COLORS = [
+  { id: "t-green", label: "Green", hex: "#4BCE97", trello: "green" },
+  { id: "t-yellow", label: "Yellow", hex: "#F5CD47", trello: "yellow" },
+  { id: "t-orange", label: "Orange", hex: "#FEA362", trello: "orange" },
+  { id: "t-red", label: "Red", hex: "#F87168", trello: "red" },
+  { id: "t-purple", label: "Purple", hex: "#9F8FEF", trello: "purple" },
+  { id: "t-blue", label: "Blue", hex: "#579DFF", trello: "blue" },
+  { id: "t-sky", label: "Sky", hex: "#6CC3E0", trello: "sky" },
+  { id: "t-lime", label: "Lime", hex: "#94C748", trello: "lime" },
+  { id: "t-pink", label: "Pink", hex: "#E774BB", trello: "pink" },
+  { id: "t-black", label: "Graphite", hex: "#8590A2", trello: "black" },
+];
+
+// Off-palette colours. Trello can't express these as a colour cover, so they
+// are rendered and attached — the exact hex, never an approximation.
 export const SOLID_COLORS = [
   { id: "midnight", label: "Midnight", hex: "#1D2D50" },
-  { id: "cobalt", label: "Cobalt", hex: "#0B5FD3", trello: "blue" },
-  { id: "emerald", label: "Emerald", hex: "#18B588", trello: "green" },
-  { id: "amber", label: "Amber", hex: "#F0A315", trello: "orange" },
-  { id: "coral", label: "Coral", hex: "#EF4B4B", trello: "red" },
-  { id: "violet", label: "Violet", hex: "#9B6BFB", trello: "purple" },
-  { id: "teal", label: "Teal", hex: "#1BB79A", trello: "sky" },
-  { id: "magenta", label: "Magenta", hex: "#EF3D87", trello: "pink" },
-  { id: "slate", label: "Slate", hex: "#1F2733", trello: "black" },
-  { id: "cream", label: "Cream", hex: "#FBEFCD", trello: "yellow" },
-  { id: "mint", label: "Mint", hex: "#CDF5E2", trello: "lime" },
+  { id: "cobalt", label: "Cobalt", hex: "#0B5FD3" },
+  { id: "emerald", label: "Emerald", hex: "#18B588" },
+  { id: "amber", label: "Amber", hex: "#F0A315" },
+  { id: "coral", label: "Coral", hex: "#EF4B4B" },
+  { id: "violet", label: "Violet", hex: "#9B6BFB" },
+  { id: "teal", label: "Teal", hex: "#1BB79A" },
+  { id: "magenta", label: "Magenta", hex: "#EF3D87" },
+  { id: "slate", label: "Slate", hex: "#1F2733" },
+  { id: "cream", label: "Cream", hex: "#FBEFCD" },
+  { id: "mint", label: "Mint", hex: "#CDF5E2" },
   { id: "lilac", label: "Lilac", hex: "#EDE9FE" },
 ];
 
