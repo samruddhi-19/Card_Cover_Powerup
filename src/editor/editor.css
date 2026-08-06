@@ -123,31 +123,45 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
 
+  /* Reserves the scrollbar's width whether or not it's showing, so switching
+     to a short tab doesn't shunt the whole palette sideways. */
+  scrollbar-gutter: stable;
+
   /* Firefox */
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
 }
 
-/* WebKit: a thin, track-less thumb that sits inside the padding rather than
-   carving a grey gutter out of the panel. The transparent border plus
-   background-clip is what gives the thumb breathing room without a track. */
+/* WebKit: a slim floating thumb, no track and no gutter chrome. The
+   transparent border plus background-clip is what insets the thumb — a
+   plain narrow bar would sit hard against the panel edge. */
 .ce-main::-webkit-scrollbar {
-  width: 11px;
+  width: 8px;
 }
 
-.ce-main::-webkit-scrollbar-track {
+.ce-main::-webkit-scrollbar-track,
+.ce-main::-webkit-scrollbar-corner {
   background: transparent;
 }
 
 .ce-main::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.14);
   background-clip: content-box;
-  border: 3px solid transparent;
+  border: 2px solid transparent;
   border-radius: 99px;
+  transition: background-color 160ms var(--ce-ease);
 }
 
-.ce-main::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+/* Quiet until you're actually in the column, then legible — visible enough
+   to grab without becoming a permanent grey stripe down the panel. */
+.ce-main:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.26);
+  background-clip: content-box;
+}
+
+.ce-main::-webkit-scrollbar-thumb:hover,
+.ce-main::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.42);
   background-clip: content-box;
 }
 
