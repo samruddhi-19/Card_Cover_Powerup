@@ -1,0 +1,712 @@
+<title>Card Cover — Editor Directions</title>
+<style>
+  /* ─── Tokens ───────────────────────────────────────────────────────────
+     Neutrals carry a cool blue bias, borrowed from the product this tool
+     lives inside. The single warm accent (ochre) is reserved for editorial
+     marks — eyebrows, the recommendation — so it never competes with the
+     specimens, which are the only place real colour belongs.
+     ──────────────────────────────────────────────────────────────────── */
+  :root {
+    --ground: #F7F8FA;
+    --raise:  #FFFFFF;
+    --sunken: #EDEFF3;
+    --ink:    #101623;
+    --ink-2:  #3D4757;
+    --muted:  #6B7688;
+    --faint:  #98A2B3;
+    --line:   #DDE2EA;
+    --line-2: #C6CDD9;
+    --accent: #A66A21;
+    --accent-soft: #F3E6D3;
+
+    --shell: 1160px;
+    --step--1: 0.78rem;
+    --step-0:  1rem;
+    --step-1:  1.32rem;
+    --step-2:  1.85rem;
+    --step-3:  2.6rem;
+    --step-4:  3.6rem;
+
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0B0E14;
+      --raise:  #12161F;
+      --sunken: #171C26;
+      --ink:    #EDF0F5;
+      --ink-2:  #C2CAD8;
+      --muted:  #8B95A7;
+      --faint:  #69738a;
+      --line:   #232A37;
+      --line-2: #333C4D;
+      --accent: #E0A657;
+      --accent-soft: #2A2013;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0B0E14; --raise: #12161F; --sunken: #171C26;
+    --ink: #EDF0F5; --ink-2: #C2CAD8; --muted: #8B95A7; --faint: #69738a;
+    --line: #232A37; --line-2: #333C4D;
+    --accent: #E0A657; --accent-soft: #2A2013;
+  }
+  :root[data-theme="light"] {
+    --ground: #F7F8FA; --raise: #FFFFFF; --sunken: #EDEFF3;
+    --ink: #101623; --ink-2: #3D4757; --muted: #6B7688; --faint: #98A2B3;
+    --line: #DDE2EA; --line-2: #C6CDD9;
+    --accent: #A66A21; --accent-soft: #F3E6D3;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell { max-width: var(--shell); margin: 0 auto; padding: 0 28px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  /* ─── Masthead ─── */
+  .masthead { padding: 72px 0 40px; border-bottom: 1px solid var(--line); }
+  .masthead h1 {
+    margin: 14px 0 0;
+    font-size: var(--step-4);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    font-weight: 680;
+    text-wrap: balance;
+    max-width: 16ch;
+  }
+  .standfirst {
+    margin: 22px 0 0;
+    max-width: 62ch;
+    font-size: var(--step-1);
+    line-height: 1.5;
+    color: var(--ink-2);
+    text-wrap: pretty;
+  }
+  .brief {
+    margin-top: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 26px;
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+  .brief b { color: var(--ink); font-weight: 600; }
+
+  /* ─── Jump nav ─── */
+  .jump {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--ground) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .jump__inner { display: flex; gap: 4px; overflow-x: auto; padding: 8px 28px; max-width: var(--shell); margin: 0 auto; }
+  .jump a {
+    flex: 0 0 auto;
+    padding: 7px 13px;
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .jump a:hover { background: var(--sunken); color: var(--ink); }
+  .jump a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  /* ─── Specimen sections ─── */
+  .spec { padding: 76px 0; border-bottom: 1px solid var(--line); }
+  .spec__head { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,320px); gap: 40px; align-items: end; margin-bottom: 34px; }
+  .spec__name { margin: 10px 0 0; font-size: var(--step-3); letter-spacing: -0.03em; font-weight: 660; line-height: 1.05; }
+  .spec__gist { margin: 14px 0 0; max-width: 54ch; color: var(--ink-2); text-wrap: pretty; }
+  .tag {
+    display: inline-block; margin-left: 12px; vertical-align: 5px;
+    padding: 3px 9px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent);
+    font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  .facts { display: grid; gap: 12px; margin: 0; }
+  .facts div { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 14px; align-items: baseline; }
+  .facts dt { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+  .facts dd { margin: 0; font-size: 0.9rem; color: var(--ink-2); line-height: 1.5; }
+
+  .stage {
+    overflow-x: auto;
+    padding: 34px;
+    border-radius: 16px;
+    background: var(--sunken);
+    border: 1px solid var(--line);
+  }
+
+  /* ═══ Mockup chrome — the specimens themselves ═════════════════════════
+     All four render in the dark treatment the editor actually ships in, so
+     these read as product, not diagram. Fixed 860px so proportions stay
+     honest; the .stage scrolls rather than the page.
+     ═════════════════════════════════════════════════════════════════════ */
+  .m {
+    width: 860px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #0B0D11;
+    color: #E7ECF3;
+    font-size: 13px;
+    line-height: 1.45;
+    box-shadow: 0 26px 60px -24px rgba(6,10,20,.62), 0 2px 8px rgba(6,10,20,.3);
+    border: 1px solid rgba(255,255,255,.07);
+  }
+  .m__bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    background: rgba(255,255,255,.022);
+  }
+  .m__title { font-weight: 620; letter-spacing: -0.01em; }
+  .m__sub { color: #7E8AA0; font-size: 11.5px; }
+  .m__x { margin-left: auto; color: #7E8AA0; font-size: 15px; }
+
+  .m__foot {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 18px;
+    border-top: 1px solid rgba(255,255,255,.07);
+    background: rgba(255,255,255,.022);
+  }
+  .m__status { flex: 1; color: #6E7A90; font-size: 11.5px; font-family: var(--mono); }
+
+  .btn { padding: 8px 15px; border-radius: 7px; font-size: 12.5px; font-weight: 600; }
+  .btn--ghost { color: #99A4B8; border: 1px solid rgba(255,255,255,.14); }
+  .btn--go { background: #4C8DFF; color: #06121F; }
+
+  .lbl {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: #77839A;
+  }
+
+  /* tab pills */
+  .tabs { display: inline-flex; gap: 3px; padding: 3px; border-radius: 9px; background: rgba(255,255,255,.05); }
+  .tab { padding: 6px 13px; border-radius: 6px; font-size: 11.5px; font-weight: 600; color: #96A1B5; }
+  .tab.on { background: #EDF1F7; color: #0B0D11; }
+
+  /* swatch rows */
+  .sw-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sw { width: 46px; height: 40px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); position: relative; }
+  .sw.on { box-shadow: inset 0 0 0 1px rgba(255,255,255,.14), 0 0 0 2px #0B0D11, 0 0 0 4px #4C8DFF; }
+  .sw.on::after {
+    content: "✓"; position: absolute; inset: 0;
+    display: grid; place-items: center; font-size: 13px; font-weight: 700;
+    color: rgba(8,12,20,.72);
+  }
+
+  /* trello card mock */
+  .tc { width: 218px; border-radius: 10px; overflow: hidden; background: #22272B; box-shadow: 0 12px 26px -10px rgba(0,0,0,.7); }
+  .tc__cover { height: 92px; }
+  .tc__pad { padding: 9px 11px 11px; display: grid; gap: 7px; }
+  .tc__chip { width: 42px; height: 7px; border-radius: 3px; background: #4BCE97; }
+  .tc__t { font-size: 12.5px; font-weight: 600; color: #C5CFDB; line-height: 1.3; }
+  .tc__row { display: flex; align-items: center; gap: 7px; color: #6E7A8A; font-size: 10px; }
+  .tc__av { margin-left: auto; width: 19px; height: 19px; border-radius: 50%; background: #4C8DFF; color: #06121F; font-size: 8.5px; font-weight: 800; display: grid; place-items: center; }
+  /* full-bleed variant: title sits on the cover */
+  .tc--full .tc__cover { height: 116px; display: flex; align-items: flex-end; padding: 10px; }
+  .tc--full .tc__t { color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+
+  /* ── A: Split Studio ── */
+  .A { display: grid; grid-template-columns: 286px minmax(0,1fr); }
+  .A__left { padding: 26px 22px; border-right: 1px solid rgba(255,255,255,.07); display: grid; gap: 16px; justify-items: center; align-content: start; background: rgba(255,255,255,.018); }
+  .A__cap { text-align: center; display: grid; gap: 3px; }
+  .A__cap b { font-size: 12.5px; font-weight: 620; }
+  .A__cap span { font-size: 10.5px; color: #7E8AA0; font-family: var(--mono); }
+  .A__right { padding: 18px 22px 24px; display: grid; gap: 22px; align-content: start; }
+  .A__sec { display: grid; gap: 10px; }
+  .A__sech { display: flex; align-items: center; gap: 12px; }
+  .A__rule { flex: 1; height: 1px; background: rgba(255,255,255,.08); }
+
+  /* ── B: Preview Gallery ── */
+  .B { display: grid; grid-template-columns: 54px minmax(0,1fr); }
+  .B__rail { border-right: 1px solid rgba(255,255,255,.07); padding: 14px 0; display: grid; gap: 6px; justify-items: center; align-content: start; background: rgba(255,255,255,.018); }
+  .B__ico { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; font-size: 14px; color: #7E8AA0; }
+  .B__ico.on { background: #EDF1F7; color: #0B0D11; }
+  .B__grid { padding: 20px 22px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .B__tile { display: grid; gap: 7px; }
+  .B__mini { border-radius: 9px; overflow: hidden; background: #22272B; box-shadow: 0 8px 18px -8px rgba(0,0,0,.6); }
+  .B__mini.on { outline: 2px solid #4C8DFF; outline-offset: 2px; }
+  .B__cov { height: 54px; }
+  .B__body { padding: 7px 8px 9px; display: grid; gap: 5px; }
+  .B__line { height: 5px; border-radius: 3px; background: #38414C; }
+  .B__line.s { width: 58%; }
+  .B__nm { font-size: 10.5px; color: #96A1B5; font-family: var(--mono); }
+
+  /* ── C: Cinematic Hero ── */
+  .C__hero { height: 208px; display: grid; place-items: center; position: relative; }
+  .C__scrim { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 120%, rgba(4,6,12,.55), transparent 62%); }
+  .C__rail { display: flex; align-items: center; gap: 14px; padding: 11px 18px; border-top: 1px solid rgba(255,255,255,.07); border-bottom: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.022); }
+  .C__body { padding: 20px 22px; display: grid; gap: 20px; }
+  .C__sw { display: grid; gap: 9px; }
+
+  /* toggle */
+  .tog { margin-left: auto; display: flex; align-items: center; gap: 9px; padding: 6px 11px; border-radius: 9px; background: rgba(43,160,102,.14); border: 1px solid rgba(43,160,102,.4); }
+  .tog__t { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.11em; text-transform: uppercase; color: #5BD69A; }
+  .tog__s { width: 32px; height: 18px; border-radius: 99px; background: #2BA066; position: relative; }
+  .tog__s::after { content: ""; position: absolute; top: 2.5px; right: 2.5px; width: 13px; height: 13px; border-radius: 50%; background: #fff; }
+
+  /* ── D: Command Palette ── */
+  .D { width: 560px; margin: 0 auto; }
+  .D__search { display: flex; align-items: center; gap: 10px; padding: 15px 18px; border-bottom: 1px solid rgba(255,255,255,.07); color: #6E7A90; }
+  .D__list { padding: 8px 0; max-height: 292px; }
+  .D__grp { padding: 10px 18px 5px; }
+  .D__it { display: flex; align-items: center; gap: 11px; padding: 8px 18px; }
+  .D__it.on { background: rgba(76,141,255,.14); box-shadow: inset 2px 0 0 #4C8DFF; }
+  .D__dot { width: 18px; height: 18px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+  .D__nm { font-size: 12.5px; font-weight: 550; }
+  .D__meta { margin-left: auto; font-family: var(--mono); font-size: 10px; color: #6E7A90; }
+  .D__strip { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-top: 1px solid rgba(255,255,255,.07); }
+  .D__prev { flex: 1; height: 34px; border-radius: 7px; }
+
+  /* ─── Close ─── */
+  .close { padding: 72px 0 96px; }
+  .close h2 { font-size: var(--step-2); letter-spacing: -0.025em; margin: 12px 0 0; font-weight: 660; }
+  .close p { max-width: 62ch; color: var(--ink-2); text-wrap: pretty; }
+  .close ul { max-width: 62ch; color: var(--ink-2); padding-left: 1.1em; }
+  .close li { margin: 8px 0; }
+  .close li b { color: var(--ink); }
+
+  @media (max-width: 860px) {
+    .spec__head { grid-template-columns: 1fr; gap: 26px; align-items: start; }
+    .masthead { padding: 48px 0 32px; }
+    .shell { padding: 0 18px; }
+    .jump__inner { padding: 8px 18px; }
+    .stage { padding: 18px; border-radius: 12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<header class="masthead">
+  <div class="shell">
+    <p class="eyebrow">Card Cover · Trello Power-Up</p>
+    <h1>Four ways to build the cover editor</h1>
+    <p class="standfirst">
+      The last build reproduced the reference layout — a tab bar over two grids of
+      coloured squares. These are four directions that get past that. Every swatch,
+      gradient and hex below is the real data from the Power-Up, so what you see is
+      what ships.
+    </p>
+    <div class="brief">
+      <span><b>10</b> Trello colours · instant</span>
+      <span><b>12</b> custom colours · attached</span>
+      <span><b>8</b> gradients · attached</span>
+      <span>modal, not popup</span>
+    </div>
+  </div>
+</header>
+
+<nav class="jump" aria-label="Jump to direction">
+  <div class="jump__inner">
+    <a href="#a">A · Split Studio</a>
+    <a href="#b">B · Preview Gallery</a>
+    <a href="#c">C · Cinematic Hero</a>
+    <a href="#d">D · Command Palette</a>
+    <a href="#pick">How to choose</a>
+  </div>
+</nav>
+
+<!-- ══ A ══════════════════════════════════════════════════════════════ -->
+<section class="spec" id="a">
+  <div class="shell">
+    <div class="spec__head">
+      <div>
+        <p class="eyebrow">Direction A</p>
+        <h2 class="spec__name">Split Studio <span class="tag">Recommended</span></h2>
+        <p class="spec__gist">
+          A real Trello card sits pinned on the left while you scroll swatches on the
+          right. You judge the cover on the thing it goes on, not as an isolated
+          chip — and Standard vs Full-bleed becomes visible instead of a word.
+        </p>
+      </div>
+      <dl class="facts">
+        <div><dt>Strength</dt><dd>Truthful preview; calm to operate</dd></div>
+        <div><dt>Cost</dt><dd>~280px of width spent on preview</dd></div>
+        <div><dt>Feels like</dt><dd>Linear, Figma inspector</dd></div>
+      </dl>
+    </div>
+
+    <div class="stage">
+      <div class="m">
+        <div class="m__bar">
+          <span class="m__title">Card cover</span>
+          <span class="m__sub">Add Notification System</span>
+          <span class="m__x">✕</span>
+        </div>
+        <div class="A">
+          <div class="A__left">
+            <div class="tc">
+              <div class="tc__cover" style="background:#6CC3E0"></div>
+              <div class="tc__pad">
+                <div class="tc__chip"></div>
+                <div class="tc__t">Add Notification System</div>
+                <div class="tc__row"><span>☰</span><span>69d</span><span class="tc__av">SB</span></div>
+              </div>
+            </div>
+            <div class="A__cap">
+              <b>Sky</b>
+              <span>standard · instant</span>
+            </div>
+          </div>
+
+          <div class="A__right">
+            <div class="tabs">
+              <span class="tab on">Colour</span>
+              <span class="tab">Gradient</span>
+              <span class="tab">Image</span>
+              <span class="tab">Text</span>
+            </div>
+
+            <div class="A__sec">
+              <div class="A__sech">
+                <span class="lbl">Trello colours</span>
+                <span class="A__rule"></span>
+                <span class="lbl">instant · no attachment</span>
+              </div>
+              <div class="sw-row">
+                <span class="sw" style="background:#4BCE97"></span>
+                <span class="sw" style="background:#F5CD47"></span>
+                <span class="sw" style="background:#FEA362"></span>
+                <span class="sw" style="background:#F87168"></span>
+                <span class="sw" style="background:#9F8FEF"></span>
+                <span class="sw" style="background:#579DFF"></span>
+                <span class="sw on" style="background:#6CC3E0"></span>
+                <span class="sw" style="background:#94C748"></span>
+                <span class="sw" style="background:#E774BB"></span>
+                <span class="sw" style="background:#8590A2"></span>
+              </div>
+            </div>
+
+            <div class="A__sec">
+              <div class="A__sech">
+                <span class="lbl">Custom colours</span>
+                <span class="A__rule"></span>
+                <span class="lbl">rendered &amp; attached</span>
+              </div>
+              <div class="sw-row">
+                <span class="sw" style="background:#1D2D50"></span>
+                <span class="sw" style="background:#0B5FD3"></span>
+                <span class="sw" style="background:#18B588"></span>
+                <span class="sw" style="background:#F0A315"></span>
+                <span class="sw" style="background:#EF4B4B"></span>
+                <span class="sw" style="background:#9B6BFB"></span>
+                <span class="sw" style="background:#1BB79A"></span>
+                <span class="sw" style="background:#EF3D87"></span>
+                <span class="sw" style="background:#1F2733"></span>
+                <span class="sw" style="background:#FBEFCD"></span>
+                <span class="sw" style="background:#CDF5E2"></span>
+                <span class="sw" style="background:#EDE9FE"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="m__foot">
+          <span class="m__status">Sky · applies instantly</span>
+          <span class="btn btn--ghost">Cancel</span>
+          <span class="btn btn--go">Apply cover</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ B ══════════════════════════════════════════════════════════════ -->
+<section class="spec" id="b">
+  <div class="shell">
+    <div class="spec__head">
+      <div>
+        <p class="eyebrow">Direction B</p>
+        <h2 class="spec__name">Preview Gallery</h2>
+        <p class="spec__gist">
+          No separate preview pane, because every tile is already one. You compare
+          finished cards against each other rather than paint chips — the most direct
+          answer to “it looks like a grid of squares”.
+        </p>
+      </div>
+      <dl class="facts">
+        <div><dt>Strength</dt><dd>Compare results, not swatches</dd></div>
+        <div><dt>Cost</dt><dd>Denser; 30 tiles needs scrolling</dd></div>
+        <div><dt>Feels like</dt><dd>Notion covers, Figma community</dd></div>
+      </dl>
+    </div>
+
+    <div class="stage">
+      <div class="m">
+        <div class="m__bar">
+          <span class="m__title">Cover gallery</span>
+          <span class="m__sub">Gradients</span>
+          <span class="m__x">✕</span>
+        </div>
+        <div class="B">
+          <div class="B__rail">
+            <span class="B__ico on">◐</span>
+            <span class="B__ico">▦</span>
+            <span class="B__ico">▣</span>
+            <span class="B__ico">T</span>
+          </div>
+          <div class="B__grid">
+            <div class="B__tile">
+              <div class="B__mini on">
+                <div class="B__cov" style="background:linear-gradient(120deg,#2B5CE6,#B44BD6,#F0577E)"></div>
+                <div class="B__body"><div class="B__line"></div><div class="B__line s"></div></div>
+              </div>
+              <span class="B__nm">Ocean Sunset</span>
+            </div>
+            <div class="B__tile">
+              <div class="B__mini">
+                <div class="B__cov" style="background:linear-gradient(120deg,#1DC8B6,#1E88E5)"></div>
+                <div class="B__body"><div class="B__line"></div><div class="B__line s"></div></div>
+              </div>
+              <span class="B__nm">Northern Lights</span>
+            </div>
+            <div class="B__tile">
+              <div class="B__mini">
+                <div class="B__cov" style="background:linear-gradient(120deg,#7B2FF7,#E23F94,#F05A5A)"></div>
+                <div class="B__body"><div class="B__line"></div><div class="B__line s"></div></div>
+              </div>
+              <span class="B__nm">Cyberpunk Neon</span>
+            </div>
+            <div class="B__tile">
+              <div class="B__mini">
+                <div class="B__cov" style="background:linear-gradient(120deg,#F5A524,#F0644B,#E8456F)"></div>
+                <div class="B__body"><div class="B__line"></div><div class="B__line s"></div></div>
+              </div>
+              <span class="B__nm">Golden Hour</span>
+            </div>
+            <div class="B__tile">
+              <div class="B__mini">
+                <div class="B__cov" style="background:linear-gradient(120deg,#111A2E,#2A2350,#4B3A78)"></div>
+                <div class="B__body"><div class="B__line"></div><div class="B__line s"></div></div>
+              </div>
+              <span class="B__nm">Deep Space</span>
+            </div>
+            <div class="B__tile">
+              <div class="B__mini">
+                <div class="B__cov" style="background:linear-gradient(120deg,#0FB58C,#28C7B0,#7BE3C4)"></div>
+                <div class="B__body"><div class="B__line"></div><div class="B__line s"></div></div>
+              </div>
+              <span class="B__nm">Emerald Dream</span>
+            </div>
+            <div class="B__tile">
+              <div class="B__mini">
+                <div class="B__cov" style="background:linear-gradient(120deg,#FFE3E8,#FFD1C4,#FFC0CB)"></div>
+                <div class="B__body"><div class="B__line"></div><div class="B__line s"></div></div>
+              </div>
+              <span class="B__nm">Peach Sorbet</span>
+            </div>
+            <div class="B__tile">
+              <div class="B__mini">
+                <div class="B__cov" style="background:linear-gradient(120deg,#1B1F5C,#3B2E8F,#5B3FC4)"></div>
+                <div class="B__body"><div class="B__line"></div><div class="B__line s"></div></div>
+              </div>
+              <span class="B__nm">Midnight Glow</span>
+            </div>
+          </div>
+        </div>
+        <div class="m__foot">
+          <span class="m__status">Ocean Sunset · rendered &amp; attached</span>
+          <span class="btn btn--ghost">Cancel</span>
+          <span class="btn btn--go">Apply cover</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ C ══════════════════════════════════════════════════════════════ -->
+<section class="spec" id="c">
+  <div class="shell">
+    <div class="spec__head">
+      <div>
+        <p class="eyebrow">Direction C</p>
+        <h2 class="spec__name">Cinematic Hero</h2>
+        <p class="spec__gist">
+          The cover fills the top of the modal at full bleed with the card floating
+          on it. Highest impact the moment it opens, and the closest thing to seeing
+          the cover at real size — but the palette gets pushed below the fold.
+        </p>
+      </div>
+      <dl class="facts">
+        <div><dt>Strength</dt><dd>Most striking; cover shown large</dd></div>
+        <div><dt>Cost</dt><dd>Palette needs scrolling</dd></div>
+        <div><dt>Feels like</dt><dd>Unsplash, Apple product page</dd></div>
+      </dl>
+    </div>
+
+    <div class="stage">
+      <div class="m">
+        <div class="C__hero" style="background:linear-gradient(120deg,#7B2FF7,#E23F94,#F05A5A)">
+          <span class="C__scrim"></span>
+          <div class="tc tc--full" style="position:relative">
+            <div class="tc__cover" style="background:linear-gradient(120deg,#7B2FF7,#E23F94,#F05A5A)">
+              <div class="tc__t">Add Notification System</div>
+            </div>
+          </div>
+        </div>
+        <div class="C__rail">
+          <div class="tabs">
+            <span class="tab on">Colour</span>
+            <span class="tab">Gradient</span>
+            <span class="tab">Image</span>
+            <span class="tab">Text</span>
+          </div>
+          <div class="tog">
+            <span class="tog__t">Dynamic sync</span>
+            <span class="tog__s"></span>
+          </div>
+        </div>
+        <div class="C__body">
+          <div class="C__sw">
+            <span class="lbl">Trello colours · instant</span>
+            <div class="sw-row">
+              <span class="sw" style="background:#4BCE97"></span>
+              <span class="sw" style="background:#F5CD47"></span>
+              <span class="sw" style="background:#FEA362"></span>
+              <span class="sw" style="background:#F87168"></span>
+              <span class="sw" style="background:#9F8FEF"></span>
+              <span class="sw" style="background:#579DFF"></span>
+              <span class="sw" style="background:#6CC3E0"></span>
+              <span class="sw" style="background:#94C748"></span>
+              <span class="sw" style="background:#E774BB"></span>
+              <span class="sw" style="background:#8590A2"></span>
+            </div>
+          </div>
+          <div class="C__sw">
+            <span class="lbl">Custom colours · attached</span>
+            <div class="sw-row">
+              <span class="sw" style="background:#1D2D50"></span>
+              <span class="sw" style="background:#0B5FD3"></span>
+              <span class="sw" style="background:#18B588"></span>
+              <span class="sw" style="background:#F0A315"></span>
+              <span class="sw" style="background:#EF4B4B"></span>
+              <span class="sw" style="background:#9B6BFB"></span>
+              <span class="sw" style="background:#1BB79A"></span>
+              <span class="sw" style="background:#EF3D87"></span>
+              <span class="sw" style="background:#1F2733"></span>
+              <span class="sw" style="background:#FBEFCD"></span>
+              <span class="sw" style="background:#CDF5E2"></span>
+              <span class="sw" style="background:#EDE9FE"></span>
+            </div>
+          </div>
+        </div>
+        <div class="m__foot">
+          <span class="m__status">Cyberpunk Neon · full bleed</span>
+          <span class="btn btn--ghost">Cancel</span>
+          <span class="btn btn--go">Apply cover</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ D ══════════════════════════════════════════════════════════════ -->
+<section class="spec" id="d">
+  <div class="shell">
+    <div class="spec__head">
+      <div>
+        <p class="eyebrow">Direction D</p>
+        <h2 class="spec__name">Command Palette</h2>
+        <p class="spec__gist">
+          Type “ocean”, press Enter, done. The most restrained of the four and by far
+          the fastest once you know the names — but you read labels instead of seeing
+          colour, which is the wrong trade for a visual choice.
+        </p>
+      </div>
+      <dl class="facts">
+        <div><dt>Strength</dt><dd>Fastest; keyboard-native</dd></div>
+        <div><dt>Cost</dt><dd>Poor for browsing by eye</dd></div>
+        <div><dt>Feels like</dt><dd>Raycast, Linear ⌘K</dd></div>
+      </dl>
+    </div>
+
+    <div class="stage">
+      <div class="m D">
+        <div class="D__search">
+          <span>⌕</span>
+          <span>Search covers…</span>
+          <span class="m__x" style="font-size:11px;font-family:var(--mono)">ESC</span>
+        </div>
+        <div class="D__list">
+          <div class="D__grp"><span class="lbl">Trello colours</span></div>
+          <div class="D__it on">
+            <span class="D__dot" style="background:#6CC3E0"></span>
+            <span class="D__nm">Sky</span>
+            <span class="D__meta">instant ↵</span>
+          </div>
+          <div class="D__it">
+            <span class="D__dot" style="background:#579DFF"></span>
+            <span class="D__nm">Blue</span>
+            <span class="D__meta">instant</span>
+          </div>
+          <div class="D__it">
+            <span class="D__dot" style="background:#4BCE97"></span>
+            <span class="D__nm">Green</span>
+            <span class="D__meta">instant</span>
+          </div>
+          <div class="D__grp"><span class="lbl">Gradients</span></div>
+          <div class="D__it">
+            <span class="D__dot" style="background:linear-gradient(120deg,#2B5CE6,#B44BD6,#F0577E)"></span>
+            <span class="D__nm">Ocean Sunset</span>
+            <span class="D__meta">attached</span>
+          </div>
+          <div class="D__it">
+            <span class="D__dot" style="background:linear-gradient(120deg,#1DC8B6,#1E88E5)"></span>
+            <span class="D__nm">Northern Lights</span>
+            <span class="D__meta">attached</span>
+          </div>
+        </div>
+        <div class="D__strip">
+          <span class="D__prev" style="background:#6CC3E0"></span>
+          <span class="btn btn--go">Apply</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Close ══════════════════════════════════════════════════════════ -->
+<section class="close" id="pick">
+  <div class="shell">
+    <p class="eyebrow">Picking one</p>
+    <h2>What actually separates them</h2>
+    <p>
+      All four show the same real data and apply covers the same way. The difference
+      is what you look at while deciding:
+    </p>
+    <ul>
+      <li><b>A</b> shows one cover on a real card, in detail, while you browse. Best if choosing well matters more than choosing fast.</li>
+      <li><b>B</b> shows thirty covers on real cards at once. Best for gradients, where a name tells you nothing.</li>
+      <li><b>C</b> shows one cover big and cinematic. Best if this is a feature you want to show off.</li>
+      <li><b>D</b> shows no cover at all until you land on it. Best only if people already know what they want.</li>
+    </ul>
+    <p>
+      A and B combine cleanly — the gallery becomes the Gradient tab inside the split
+      layout. That is where I would take it unless you prefer one whole.
+    </p>
+  </div>
+</section>

@@ -1,38 +1,43 @@
 /* ==========================================================================
-   Card Cover — editor modal
+   Card Cover — editor modal · "Split Studio"
 
-   Dark-first, the way your reference is: a modal is a focused surface you
-   drop into and leave, so committing to one confident treatment reads better
-   than a theme that hedges. Trello dims the page behind it, which makes the
-   dark panel feel deliberate rather than mismatched.
+   A pinned card preview on the left, controls on the right. The preview is a
+   real Trello card, not a colour chip, so you judge the cover on the thing it
+   goes on — and Standard vs Full-bleed is something you see rather than read.
+
+   Dark-first and deliberately so: Trello dims the page behind a modal, and a
+   focused surface you drop into and leave reads better committing to one
+   treatment than hedging across two.
    ========================================================================== */
 
 :root {
   --ce-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
+  --ce-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  --ce-bg: #0e1116;
-  --ce-surface: #161b22;
-  --ce-surface-2: #1c232c;
-  --ce-surface-3: #232b36;
+  --ce-bg: #0b0d11;
+  --ce-raise: rgba(255, 255, 255, 0.022);
+  --ce-raise-2: rgba(255, 255, 255, 0.05);
+  --ce-line: rgba(255, 255, 255, 0.07);
+  --ce-line-2: rgba(255, 255, 255, 0.14);
 
-  --ce-border: #262e38;
-  --ce-border-strong: #38424f;
+  --ce-text: #e7ecf3;
+  --ce-text-2: #96a1b5;
+  --ce-text-3: #6e7a90;
 
-  --ce-text: #e6edf3;
-  --ce-text-subtle: #9aa7b4;
-  --ce-text-faint: #6b7885;
-
-  --ce-accent: #3b82f6;
-  --ce-accent-hover: #2f74e6;
-  --ce-success: #1f9d63;
+  --ce-accent: #4c8dff;
+  --ce-accent-ink: #06121f;
   --ce-danger: #f0564a;
+  --ce-ok: #2ba066;
+
+  /* Set from the current selection so the surface picks up a faint wash of
+     whatever colour you're considering. */
+  --ce-glow: transparent;
 
   --ce-r-sm: 6px;
-  --ce-r-md: 10px;
-  --ce-r-lg: 14px;
+  --ce-r-md: 9px;
+  --ce-r-lg: 12px;
 
-  --ce-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4);
   --ce-ease: cubic-bezier(0.2, 0.8, 0.3, 1);
   --ce-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -51,473 +56,496 @@ body {
 
 body {
   font-family: var(--ce-font);
+  font-size: 13px;
+  line-height: 1.45;
   color: var(--ce-text);
   -webkit-font-smoothing: antialiased;
 }
 
 .ce-root {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  isolation: isolate;
+}
+
+/* Ambient wash from the selected colour. Sits behind everything and never
+   intercepts pointer events. */
+.ce-root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(90% 60% at 22% 0%, var(--ce-glow), transparent 70%);
+  opacity: 0.5;
+  transition: background 420ms var(--ce-ease);
+  pointer-events: none;
 }
 
 /* --------------------------------------------------------------------------
-   Live preview
+   Header
    -------------------------------------------------------------------------- */
 
-.ce-preview {
-  position: relative;
-  height: 148px;
-  flex: 0 0 auto;
-  background: var(--ce-surface-2);
-  overflow: hidden;
-  transition: background 320ms var(--ce-ease);
-}
-
-/* Faint checkerboard shows through when nothing is selected, so "no cover"
-   is visibly distinct from "a very dark cover". */
-.ce-preview--empty {
-  background-image: linear-gradient(45deg, #191f27 25%, transparent 25%),
-    linear-gradient(-45deg, #191f27 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #191f27 75%),
-    linear-gradient(-45deg, transparent 75%, #191f27 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
-}
-
-.ce-preview__card {
-  position: absolute;
-  left: 50%;
-  bottom: 14px;
-  transform: translateX(-50%);
+.ce-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  max-width: min(320px, 70%);
-  padding: 8px 12px;
-  border-radius: var(--ce-r-sm);
-  background: rgba(14, 17, 22, 0.72);
-  backdrop-filter: blur(8px);
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 13px 18px;
+  background: var(--ce-raise);
+  border-bottom: 1px solid var(--ce-line);
 }
 
-.ce-preview__label {
+.ce-bar__title {
+  font-size: 13px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.ce-bar__sub {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--ce-text-3);
 }
 
-.ce-preview__badge {
+.ce-bar__close {
+  margin-left: auto;
   flex: 0 0 auto;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--ce-r-sm);
+  background: transparent;
+  color: var(--ce-text-2);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 150ms var(--ce-ease), color 150ms var(--ce-ease);
+}
+
+.ce-bar__close:hover {
+  background: var(--ce-raise-2);
+  color: var(--ce-text);
 }
 
 /* --------------------------------------------------------------------------
-   Toolbar — tabs + sync toggle
+   Split
    -------------------------------------------------------------------------- */
 
-.ce-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 12px 20px;
-  background: var(--ce-surface);
-  border-bottom: 1px solid var(--ce-border);
+.ce-split {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 286px minmax(0, 1fr);
+  min-height: 0;
 }
 
-.ce-tabs {
+.ce-aside {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  align-content: start;
+  padding: 26px 22px;
+  background: var(--ce-raise);
+  border-right: 1px solid var(--ce-line);
+}
+
+.ce-main {
+  display: grid;
+  gap: 22px;
+  align-content: start;
+  padding: 18px 22px 26px;
+  overflow-y: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Card preview
+   -------------------------------------------------------------------------- */
+
+.ce-card {
+  width: 218px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #22272b;
+  box-shadow: 0 12px 26px -10px rgba(0, 0, 0, 0.7);
+  transition: box-shadow 300ms var(--ce-ease);
+}
+
+.ce-card__cover {
+  height: 92px;
+  background: #2c333c;
+  transition: background 320ms var(--ce-ease), height 260ms var(--ce-ease-out);
+}
+
+/* Nothing chosen yet: a checkerboard, so "no cover" never reads as "a very
+   dark cover". */
+.ce-card__cover--empty {
+  background-image: linear-gradient(45deg, #262c34 25%, transparent 25%),
+    linear-gradient(-45deg, #262c34 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #262c34 75%),
+    linear-gradient(-45deg, transparent 75%, #262c34 75%);
+  background-size: 14px 14px;
+  background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+}
+
+/* Full-bleed puts the title on the cover, which is what Trello actually
+   does — the difference is demonstrated, not described. */
+.ce-card--full .ce-card__cover {
+  height: 118px;
   display: flex;
-  gap: 4px;
-  padding: 4px;
+  align-items: flex-end;
+  padding: 10px;
+}
+
+.ce-card__pad {
+  display: grid;
+  gap: 7px;
+  padding: 9px 11px 11px;
+}
+
+.ce-card__chip {
+  width: 42px;
+  height: 7px;
+  border-radius: 3px;
+  background: #4bce97;
+}
+
+.ce-card__title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #c5cfdb;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.ce-card--full .ce-card__title {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.ce-card__row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: #6e7a8a;
+}
+
+.ce-card__av {
+  margin-left: auto;
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ce-accent);
+  color: var(--ce-accent-ink);
+  font-size: 8.5px;
+  font-weight: 800;
+}
+
+.ce-caption {
+  display: grid;
+  gap: 3px;
+  text-align: center;
+}
+
+.ce-caption__name {
+  font-size: 12.5px;
+  font-weight: 620;
+}
+
+.ce-caption__meta {
+  font-family: var(--ce-mono);
+  font-size: 10.5px;
+  color: var(--ce-text-3);
+}
+
+/* --------------------------------------------------------------------------
+   Tabs
+   -------------------------------------------------------------------------- */
+
+.ce-tabs {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
   border-radius: var(--ce-r-md);
-  background: var(--ce-bg);
-  border: 1px solid var(--ce-border);
+  background: var(--ce-raise-2);
+  justify-self: start;
 }
 
 .ce-tab {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
+  gap: 6px;
+  padding: 6px 13px;
   border: none;
   border-radius: var(--ce-r-sm);
   background: transparent;
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--ce-text-subtle);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ce-text-2);
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 150ms var(--ce-ease), color 150ms var(--ce-ease);
 }
 
-.ce-tab:hover:not([aria-selected="true"]):not(:disabled) {
+.ce-tab:hover[aria-selected="false"] {
   color: var(--ce-text);
-  background: var(--ce-surface-2);
 }
 
 .ce-tab[aria-selected="true"] {
-  background: #fff;
-  color: #10151b;
-}
-
-.ce-tab:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.ce-toolbar__spacer {
-  flex: 1 1 auto;
-}
-
-/* Sync pill */
-.ce-sync {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: var(--ce-r-md);
-  background: var(--ce-surface-2);
-  border: 1px solid var(--ce-border);
-  transition: border-color 180ms var(--ce-ease), background-color 180ms var(--ce-ease);
-}
-
-.ce-sync--on {
-  background: rgba(31, 157, 99, 0.14);
-  border-color: rgba(31, 157, 99, 0.45);
-}
-
-.ce-sync__text {
-  line-height: 1.25;
-}
-
-.ce-sync__title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--ce-text-subtle);
-}
-
-.ce-sync--on .ce-sync__title {
-  color: #4ade80;
-}
-
-.ce-sync__hint {
-  font-size: 10.5px;
-  color: var(--ce-text-faint);
-}
-
-.ce-switch {
-  position: relative;
-  flex: 0 0 auto;
-  width: 38px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  border-radius: 999px;
-  background: var(--ce-surface-3);
-  cursor: pointer;
-  transition: background-color 200ms var(--ce-ease);
-}
-
-.ce-switch[aria-checked="true"] {
-  background: var(--ce-success);
-}
-
-.ce-switch::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  transition: transform 220ms var(--ce-ease-out);
-}
-
-.ce-switch[aria-checked="true"]::after {
-  transform: translateX(16px);
+  background: #edf1f7;
+  color: #0b0d11;
 }
 
 /* --------------------------------------------------------------------------
-   Panels
+   Sections
    -------------------------------------------------------------------------- */
 
-.ce-body {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  padding: 20px;
-}
-
-.ce-section + .ce-section {
-  margin-top: 26px;
-}
-
-.ce-section__head {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.ce-section__title {
-  margin: 0;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--ce-text-subtle);
-}
-
-.ce-section__rule {
-  flex: 1 1 auto;
-  height: 1px;
-  background: var(--ce-border);
-}
-
-.ce-section__note {
-  font-size: 11.5px;
-  color: var(--ce-text-faint);
-}
-
-/* Solid swatches */
-.ce-solids {
+.ce-sec {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
-.ce-solid {
-  position: relative;
-  height: 58px;
-  padding: 0;
-  border: none;
-  border-radius: var(--ce-r-md);
-  cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  transition: transform 180ms var(--ce-ease-out), box-shadow 180ms var(--ce-ease);
-}
-
-.ce-solid:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 10px 20px -6px rgba(0, 0, 0, 0.7);
-}
-
-/* Gradient tiles */
-.ce-gradients {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.ce-gradient {
-  position: relative;
-  height: 62px;
-  padding: 0 14px;
+.ce-sec__head {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.ce-sec__rule {
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--ce-line);
+}
+
+.ce-lbl {
+  font-family: var(--ce-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ce-text-3);
+}
+
+/* --------------------------------------------------------------------------
+   Swatches
+   -------------------------------------------------------------------------- */
+
+.ce-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 8px;
+}
+
+.ce-sw {
+  position: relative;
+  height: 40px;
+  padding: 0;
   border: none;
-  border-radius: var(--ce-r-md);
+  border-radius: 8px;
   cursor: pointer;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  text-align: left;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  transition: transform 180ms var(--ce-ease-out), box-shadow 180ms var(--ce-ease);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: transform 170ms var(--ce-ease-out), box-shadow 170ms var(--ce-ease);
 }
 
-.ce-gradient:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 10px 20px -6px rgba(0, 0, 0, 0.7);
+.ce-sw:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 8px 18px -6px rgba(0, 0, 0, 0.7);
 }
 
-/* Text sits on unpredictable gradient stops, so it carries its own shadow
-   rather than relying on the backdrop for contrast. */
-.ce-gradient__label {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+.ce-sw[aria-checked="true"] {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 0 0 2px var(--ce-bg),
+    0 0 0 4px var(--ce-accent);
 }
 
-/* Shared selected state */
-.ce-solid[aria-checked="true"],
-.ce-gradient[aria-checked="true"] {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 0 0 2px var(--ce-bg), 0 0 0 4px var(--ce-accent);
-}
-
-.ce-check {
+.ce-sw__check {
   position: absolute;
-  top: 7px;
-  right: 7px;
-  width: 20px;
-  height: 20px;
+  inset: 0;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: rgba(14, 17, 22, 0.72);
-  color: #fff;
   opacity: 0;
   transform: scale(0.6);
   transition: opacity 160ms var(--ce-ease), transform 160ms var(--ce-ease-out);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
-[aria-checked="true"] > .ce-check {
+.ce-sw[aria-checked="true"] .ce-sw__check {
   opacity: 1;
   transform: scale(1);
 }
 
-/* Marks swatches that need an upload rather than the instant native path. */
-.ce-badge-upload {
-  position: absolute;
-  bottom: 6px;
-  left: 6px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(14, 17, 22, 0.66);
-  color: #cbd5e1;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+/* --------------------------------------------------------------------------
+   Gradient gallery — each tile is a miniature card, because "Northern
+   Lights" tells you nothing about what you'd be applying.
+   -------------------------------------------------------------------------- */
+
+.ce-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 14px;
+}
+
+.ce-tile {
+  display: grid;
+  gap: 7px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.ce-tile__mini {
+  border-radius: 9px;
+  overflow: hidden;
+  background: #22272b;
+  box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.6);
+  transition: transform 170ms var(--ce-ease-out), outline-color 150ms var(--ce-ease);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.ce-tile:hover .ce-tile__mini {
+  transform: translateY(-3px);
+}
+
+.ce-tile[aria-checked="true"] .ce-tile__mini {
+  outline-color: var(--ce-accent);
+}
+
+.ce-tile__cover {
+  height: 54px;
+}
+
+.ce-tile__body {
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px 9px;
+}
+
+.ce-tile__line {
+  height: 5px;
+  border-radius: 3px;
+  background: #38414c;
+}
+
+.ce-tile__line--short {
+  width: 58%;
+}
+
+.ce-tile__name {
+  font-family: var(--ce-mono);
+  font-size: 10.5px;
+  color: var(--ce-text-2);
 }
 
 /* --------------------------------------------------------------------------
-   Segmented control (Text panel)
+   Segmented control
    -------------------------------------------------------------------------- */
 
 .ce-seg {
   display: inline-flex;
   width: 100%;
-  max-width: 340px;
+  max-width: 320px;
   padding: 3px;
   gap: 3px;
   border-radius: var(--ce-r-md);
-  background: var(--ce-bg);
-  border: 1px solid var(--ce-border);
+  background: var(--ce-raise-2);
 }
 
 .ce-seg__option {
   flex: 1 1 0;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border: none;
   border-radius: var(--ce-r-sm);
   background: transparent;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--ce-text-subtle);
+  color: var(--ce-text-2);
   cursor: pointer;
   transition: background-color 150ms var(--ce-ease), color 150ms var(--ce-ease);
 }
 
-.ce-seg__option:hover:not([aria-checked="true"]) {
+.ce-seg__option:hover[aria-checked="false"] {
   color: var(--ce-text);
 }
 
 .ce-seg__option[aria-checked="true"] {
-  background: var(--ce-surface-3);
-  color: var(--ce-text);
+  background: #edf1f7;
+  color: #0b0d11;
 }
 
 /* --------------------------------------------------------------------------
-   Image panel
+   Image drop
    -------------------------------------------------------------------------- */
 
 .ce-drop {
   display: grid;
   place-items: center;
   gap: 10px;
-  padding: 34px 20px;
-  border: 1.5px dashed var(--ce-border-strong);
+  padding: 36px 20px;
+  border: 1.5px dashed var(--ce-line-2);
   border-radius: var(--ce-r-lg);
-  background: var(--ce-surface);
+  background: var(--ce-raise);
   text-align: center;
   transition: border-color 180ms var(--ce-ease), background-color 180ms var(--ce-ease);
 }
 
 .ce-drop--active {
   border-color: var(--ce-accent);
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(76, 141, 255, 0.08);
 }
 
 .ce-drop__title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
 }
 
 .ce-drop__hint {
-  font-size: 12px;
-  color: var(--ce-text-faint);
-}
-
-/* --------------------------------------------------------------------------
-   Empty / placeholder panel
-   -------------------------------------------------------------------------- */
-
-.ce-placeholder {
-  display: grid;
-  place-items: center;
-  gap: 8px;
-  padding: 48px 20px;
-  border: 1px solid var(--ce-border);
-  border-radius: var(--ce-r-lg);
-  background: var(--ce-surface);
-  text-align: center;
-  color: var(--ce-text-faint);
-}
-
-.ce-placeholder__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ce-text-subtle);
-}
-
-.ce-placeholder__body {
-  font-size: 12.5px;
-  max-width: 42ch;
-  line-height: 1.5;
+  font-size: 11.5px;
+  color: var(--ce-text-3);
+  max-width: 40ch;
 }
 
 /* --------------------------------------------------------------------------
    Footer
    -------------------------------------------------------------------------- */
 
-.ce-footer {
+.ce-foot {
   display: flex;
   align-items: center;
   gap: 10px;
   flex: 0 0 auto;
-  padding: 14px 20px;
-  background: var(--ce-surface);
-  border-top: 1px solid var(--ce-border);
+  padding: 13px 18px;
+  background: var(--ce-raise);
+  border-top: 1px solid var(--ce-line);
 }
 
-.ce-footer__status {
+.ce-foot__status {
   flex: 1 1 auto;
-  font-size: 12.5px;
-  color: var(--ce-text-faint);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ce-mono);
+  font-size: 11px;
+  color: var(--ce-text-3);
 }
 
-.ce-footer__status--error {
+.ce-foot__status--error {
   color: var(--ce-danger);
 }
 
@@ -526,11 +554,12 @@ body {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 9px 16px;
+  flex: 0 0 auto;
+  padding: 8px 15px;
   border: 1px solid transparent;
-  border-radius: var(--ce-r-sm);
+  border-radius: 7px;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -547,23 +576,23 @@ body {
   cursor: not-allowed;
 }
 
-.ce-btn--primary {
+.ce-btn--go {
   background: var(--ce-accent);
-  color: #fff;
+  color: var(--ce-accent-ink);
 }
 
-.ce-btn--primary:hover:not(:disabled) {
-  background: var(--ce-accent-hover);
+.ce-btn--go:hover:not(:disabled) {
+  background: #6ba1ff;
 }
 
 .ce-btn--ghost {
+  border-color: var(--ce-line-2);
   background: transparent;
-  border-color: var(--ce-border-strong);
-  color: var(--ce-text-subtle);
+  color: var(--ce-text-2);
 }
 
 .ce-btn--ghost:hover:not(:disabled) {
-  background: var(--ce-surface-2);
+  background: var(--ce-raise-2);
   color: var(--ce-text);
 }
 
@@ -582,12 +611,17 @@ body {
 
 .ce-tab:focus-visible,
 .ce-btn:focus-visible,
-.ce-solid:focus-visible,
-.ce-gradient:focus-visible,
-.ce-switch:focus-visible,
-.ce-seg__option:focus-visible {
+.ce-sw:focus-visible,
+.ce-tile:focus-visible,
+.ce-seg__option:focus-visible,
+.ce-bar__close:focus-visible {
   outline: 2px solid var(--ce-accent);
   outline-offset: 2px;
+}
+
+.ce-tile:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--ce-r-md);
 }
 
 .ce-sr {
@@ -612,32 +646,29 @@ body {
   }
 }
 
-@media (max-width: 560px) {
-  .ce-toolbar {
-    gap: 10px;
+/* Narrow modal (mobile Trello, or a small window): the preview moves above
+   the controls rather than squeezing both into unusable columns. */
+@media (max-width: 620px) {
+  .ce-split {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .ce-tabs {
-    order: 1;
-    width: 100%;
-    overflow-x: auto;
-  }
-
-  .ce-sync {
-    order: 2;
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .ce-preview {
-    height: 116px;
+  .ce-aside {
+    border-right: none;
+    border-bottom: 1px solid var(--ce-line);
+    padding: 18px;
   }
 }
 
 @media (pointer: coarse) {
   .ce-btn,
-  .ce-tab {
+  .ce-tab,
+  .ce-seg__option {
     min-height: 44px;
+  }
+
+  .ce-sw {
+    height: 46px;
   }
 }
 
