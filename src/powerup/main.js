@@ -28,6 +28,22 @@ TrelloPowerUp.initialize({
     });
   },
 
+  "board-buttons": function () {
+    return [
+      {
+        icon: { dark: ICON, light: ICON },
+        text: "Card Cover",
+        callback: function (t) {
+          return t.popup({
+            title: "Card Cover Settings",
+            url: "./settings.html",
+            height: 300,
+          });
+        },
+      },
+    ];
+  },
+
   "card-buttons": function () {
     return [
       {
