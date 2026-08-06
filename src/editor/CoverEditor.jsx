@@ -14,7 +14,7 @@ import {
   gradientCss,
   coverFileName,
 } from "../lib/covers.js";
-import { renderCover } from "../lib/coverRender.js";
+import { renderCover, hasText, previewFontScale } from "../lib/coverRender.js";
 import { readableInk } from "../ui/palette.js";
 import {
   PaletteIcon,
@@ -46,6 +46,21 @@ const TEXT_OPTIONS = [
   { value: "light", label: "Dark text" },
 ];
 
+// Ink for text we render onto the cover ourselves — unrelated to Trello's
+// `brightness`, which only governs how Trello draws the card title.
+const INK_OPTIONS = [
+  { value: "white", label: "White" },
+  { value: "dark", label: "Dark" },
+];
+
+const ALIGN_OPTIONS = [
+  { value: "left", label: "Left" },
+  { value: "center", label: "Centre" },
+  { value: "right", label: "Right" },
+];
+
+const ALIGN_TO_FLEX = { left: "flex-start", center: "center", right: "flex-end" };
+
 export default function CoverEditor({ t }) {
   const [tab, setTab] = useState("color");
   const [cardId, setCardId] = useState(null);
@@ -63,6 +78,15 @@ export default function CoverEditor({ t }) {
   const [error, setError] = useState("");
   const [dropActive, setDropActive] = useState(false);
   const [customHex, setCustomHex] = useState("#4C9AFF");
+  const [text, setText] = useState({
+    heading: "",
+    subheading: "",
+    size: 18,
+    color: "white",
+    align: "left",
+  });
+
+  const patchText = (patch) => setText((prev) => ({ ...prev, ...patch }));
 
   const fileRef = useRef(null);
 
@@ -129,7 +153,12 @@ export default function CoverEditor({ t }) {
       // Trello colours apply instantly. Everything else has to be rasterised
       // and attached, because the cover API can't express a custom hex or a
       // gradient at all.
-      if (selection.trello) {
+      // A Trello colour cover can't carry text — the API has no field for it.
+      // So the moment there's any heading or subheading, even a native colour
+      // has to be rendered and attached instead.
+      const withText = hasText(text);
+
+      if (selection.trello && !withText) {
         // Prune *before* setting the colour, not after. A card whose cover is
         // currently a generated attachment keeps that attachment as its cover
         // otherwise, and the colour never takes.
@@ -138,7 +167,7 @@ export default function CoverEditor({ t }) {
         await setCardCover(t, cardId, { color: selection.trello, size, brightness });
       } else {
         setStatusText("Rendering cover…");
-        const blob = await renderCover(selection);
+        const blob = await renderCover(selection, withText ? text : null);
         setStatusText("Uploading cover…");
         const attachment = await uploadCoverAttachment(
           t,
@@ -223,6 +252,7 @@ export default function CoverEditor({ t }) {
               {isFull && (
                 <span className="ce-card__title">{cardName || "Card title"}</span>
               )}
+              {hasText(text) && <PreviewText text={text} width={218} />}
             </div>
             {!isFull && (
               <div className="ce-card__pad">
@@ -243,9 +273,24 @@ export default function CoverEditor({ t }) {
             </span>
             <span className="ce-caption__meta">
               {isFull ? "full bleed" : "standard"}
-              {selection ? (selection.trello ? " · instant" : " · attached") : ""}
+              {selection
+                ? selection.trello && !hasText(text)
+                  ? " · instant"
+                  : " · attached"
+                : ""}
             </span>
           </div>
+
+          {/* Cover size lives beside the preview rather than in a tab: it
+              changes the shape of the thing you're looking at, so the control
+              belongs next to the result. */}
+          <Segmented
+            options={SIZE_OPTIONS}
+            value={size}
+            onChange={setSize}
+            disabled={busy}
+            label="Cover size"
+          />
         </aside>
 
         <main className="ce-main">
@@ -376,35 +421,95 @@ export default function CoverEditor({ t }) {
 
           {tab === "text" && (
             <div role="tabpanel" id="ce-panel-text" aria-labelledby="ce-tab-text"
-                 style={{ display: "grid", gap: 22 }}>
-              <div className="ce-sec">
-                <div className="ce-sec__head">
-                  <span className="ce-lbl">Cover size</span>
-                  <span className="ce-sec__rule" />
-                </div>
-                <Segmented
-                  options={SIZE_OPTIONS}
-                  value={size}
-                  onChange={setSize}
+                 style={{ display: "grid", gap: 18 }}>
+              <p className="ce-note">
+                <TextIcon className="ce-note__icon" width={15} height={15} />
+                <span>
+                  <b>Write cover text.</b> Headings, notes or sprint labels are
+                  drawn straight onto the cover image — so any card with text
+                  becomes an attached cover, not a plain colour.
+                </span>
+              </p>
+
+              <label className="ce-field">
+                <span className="ce-lbl">Cover heading</span>
+                <input
+                  type="text"
+                  className="ce-input"
+                  value={text.heading}
                   disabled={busy}
-                  label="Cover size"
+                  maxLength={60}
+                  placeholder="Sprint 24 · Design"
+                  onChange={(e) => patchText({ heading: e.target.value })}
+                />
+              </label>
+
+              <label className="ce-field">
+                <span className="ce-lbl">Subheading</span>
+                <input
+                  type="text"
+                  className="ce-input"
+                  value={text.subheading}
+                  disabled={busy}
+                  maxLength={90}
+                  placeholder="Ships Friday"
+                  onChange={(e) => patchText({ subheading: e.target.value })}
+                />
+              </label>
+
+              <div className="ce-duo">
+                <div className="ce-field">
+                  <span className="ce-lbl">
+                    Size · <span className="ce-range__value">{text.size}px</span>
+                  </span>
+                  <input
+                    type="range"
+                    className="ce-range"
+                    min={12}
+                    max={40}
+                    step={1}
+                    value={text.size}
+                    disabled={busy}
+                    aria-label={`Text size, ${text.size} pixels`}
+                    onChange={(e) => patchText({ size: Number(e.target.value) })}
+                  />
+                </div>
+
+                <div className="ce-field">
+                  <span className="ce-lbl">Text colour</span>
+                  <Segmented
+                    options={INK_OPTIONS}
+                    value={text.color}
+                    onChange={(color) => patchText({ color })}
+                    disabled={busy}
+                    label="Text colour"
+                  />
+                </div>
+              </div>
+
+              <div className="ce-field">
+                <span className="ce-lbl">Alignment</span>
+                <Segmented
+                  options={ALIGN_OPTIONS}
+                  value={text.align}
+                  onChange={(align) => patchText({ align })}
+                  disabled={busy}
+                  label="Text alignment"
                 />
               </div>
 
-              <div className="ce-sec">
-                <div className="ce-sec__head">
-                  <span className="ce-lbl">Text contrast</span>
-                  <span className="ce-sec__rule" />
-                </div>
+              <div className="ce-field">
+                <span className="ce-lbl">Card title contrast</span>
                 <Segmented
                   options={TEXT_OPTIONS}
                   value={brightness}
                   onChange={setBrightness}
                   disabled={busy}
-                  label="Text contrast"
+                  label="Card title contrast"
                 />
-                <span className="ce-lbl" style={{ letterSpacing: 0, textTransform: "none", fontSize: 11 }}>
-                  Applies to Trello colour covers. Uploaded images carry their own contrast.
+                <span className="ce-picker__note">
+                  Trello's own setting for the card title. Only applies to plain
+                  colour covers.
                 </span>
               </div>
             </div>
@@ -430,9 +535,11 @@ export default function CoverEditor({ t }) {
           aria-live="polite"
         >
           {error || statusText || (selection
-            ? selection.trello
+            ? selection.trello && !hasText(text)
               ? `${selection.label} · applies instantly`
-              : `${selection.label} · uploads an image`
+              : hasText(text)
+                ? `${selection.label} + text · uploads an image`
+                : `${selection.label} · uploads an image`
             : "Pick a cover")}
         </span>
         <button
@@ -486,6 +593,36 @@ function Swatches({ title, note, colors, selection, onSelect, disabled }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// Mirrors what coverRender draws, at the preview's scale, so the miniature is
+// a faithful reduction rather than an approximation.
+function PreviewText({ text, width }) {
+  const scale = previewFontScale(width);
+  const ink = text.color === "dark" ? "#172B4D" : "#FFFFFF";
+  const shadow =
+    text.color === "dark"
+      ? "0 1px 3px rgba(255,255,255,.45)"
+      : "0 1px 3px rgba(0,0,0,.42)";
+
+  return (
+    <span
+      className="ce-card__text"
+      style={{
+        textAlign: text.align,
+        alignItems: ALIGN_TO_FLEX[text.align],
+        color: ink,
+        textShadow: shadow,
+      }}
+    >
+      {text.heading.trim() && (
+        <b style={{ fontSize: text.size * scale }}>{text.heading}</b>
+      )}
+      {text.subheading.trim() && (
+        <span style={{ fontSize: text.size * scale * 0.62 }}>{text.subheading}</span>
+      )}
+    </span>
   );
 }
 
