@@ -62,6 +62,7 @@ export default function CoverEditor({ t }) {
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState("");
   const [dropActive, setDropActive] = useState(false);
+  const [customHex, setCustomHex] = useState("#4C9AFF");
 
   const fileRef = useRef(null);
 
@@ -285,6 +286,13 @@ export default function CoverEditor({ t }) {
                 onSelect={setSelection}
                 disabled={busy}
               />
+              <CustomPicker
+                value={customHex}
+                onChange={setCustomHex}
+                onPick={setSelection}
+                selection={selection}
+                disabled={busy}
+              />
             </div>
           )}
 
@@ -476,6 +484,84 @@ function Swatches({ title, note, colors, selection, onSelect, disabled }) {
             </span>
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+const HEX_RE = /^#?([0-9a-f]{6})$/i;
+
+function CustomPicker({ value, onChange, onPick, selection, disabled }) {
+  const [draft, setDraft] = useState(value);
+  const [bad, setBad] = useState(false);
+
+  // Keeps the text field in step when the colour well is dragged.
+  useEffect(() => {
+    setDraft(value);
+    setBad(false);
+  }, [value]);
+
+  function commit(raw) {
+    const match = HEX_RE.exec(raw.trim());
+    if (!match) {
+      setBad(true);
+      return;
+    }
+    setBad(false);
+    apply(`#${match[1].toUpperCase()}`);
+  }
+
+  function apply(hex) {
+    onChange(hex);
+    // id feeds the uploaded filename, so it has to survive the prune regex
+    // (`card-cover-<slug>.png`) — hence the hex without its leading #.
+    onPick({
+      kind: "solid",
+      id: `custom-${hex.slice(1).toLowerCase()}`,
+      label: hex.toUpperCase(),
+      hex,
+    });
+  }
+
+  const active = selection?.id === `custom-${value.slice(1).toLowerCase()}`;
+
+  return (
+    <div className="ce-sec">
+      <div className="ce-sec__head">
+        <span className="ce-lbl">Your own colour</span>
+        <span className="ce-sec__rule" />
+        <span className="ce-lbl">{active ? "selected" : "any hex"}</span>
+      </div>
+      <div className="ce-picker">
+        <span className="ce-picker__well" style={{ background: value }}>
+          <input
+            type="color"
+            className="ce-picker__input"
+            value={value}
+            disabled={disabled}
+            aria-label="Pick a custom colour"
+            onChange={(e) => apply(e.target.value.toUpperCase())}
+          />
+        </span>
+        <div className="ce-picker__fields">
+          <input
+            type="text"
+            className={`ce-picker__hex ${bad ? "ce-picker__hex--bad" : ""}`}
+            value={draft}
+            disabled={disabled}
+            spellCheck="false"
+            aria-label="Hex colour"
+            aria-invalid={bad}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={(e) => commit(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commit(e.currentTarget.value);
+            }}
+          />
+          <span className={`ce-picker__note ${bad ? "ce-picker__note--bad" : ""}`}>
+            {bad ? "Needs six hex digits, e.g. #4C9AFF" : "Rendered and attached, exactly as picked"}
+          </span>
+        </div>
       </div>
     </div>
   );

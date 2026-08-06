@@ -10,7 +10,10 @@ import "./cover.css";
 const MODAL = {
   title: "Card Cover",
   url: "./editor.html",
-  height: 640,
+  // Trello sets the modal's width itself; height is ours. Kept compact so the
+  // editor reads as a focused panel rather than taking over the screen — the
+  // right column scrolls if a tab needs more room.
+  height: 520,
   // Trello renders the modal's title bar itself, outside this iframe, so no
   // CSS of ours can reach it. `accentColor` is the only lever: it sets that
   // bar's background, and Trello picks white title text against a dark one.

@@ -339,6 +339,95 @@ body {
 }
 
 /* --------------------------------------------------------------------------
+   Custom colour picker — any hex, not just the presets
+   -------------------------------------------------------------------------- */
+
+.ce-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px;
+  border-radius: var(--ce-r-md);
+  background: var(--ce-raise);
+  border: 1px solid var(--ce-line);
+}
+
+/* The native colour input is unstyleable across browsers, so it's sized to
+   the swatch and its own chrome is stripped — what you see is our tile, what
+   you get is the OS picker. */
+.ce-picker__well {
+  position: relative;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+}
+
+.ce-picker__input {
+  position: absolute;
+  inset: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.ce-picker__input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.ce-picker__input::-webkit-color-swatch {
+  border: none;
+}
+.ce-picker__input::-moz-color-swatch {
+  border: none;
+}
+
+.ce-picker__fields {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.ce-picker__hex {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: var(--ce-r-sm);
+  border: 1px solid var(--ce-line-2);
+  background: var(--ce-bg);
+  color: var(--ce-text);
+  font-family: var(--ce-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.ce-picker__hex:focus-visible {
+  outline: 2px solid var(--ce-accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.ce-picker__hex--bad {
+  border-color: var(--ce-danger);
+}
+
+.ce-picker__note {
+  font-family: var(--ce-mono);
+  font-size: 10px;
+  color: var(--ce-text-3);
+}
+
+.ce-picker__note--bad {
+  color: var(--ce-danger);
+}
+
+/* --------------------------------------------------------------------------
    Gradient gallery â€” each tile is a miniature card, because "Northern
    Lights" tells you nothing about what you'd be applying.
    -------------------------------------------------------------------------- */
@@ -633,5 +722,7 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+
 
 
