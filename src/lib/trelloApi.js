@@ -65,12 +65,32 @@ export function getCard(t, cardId) {
  * @param cover `null` clears the cover; otherwise an object such as
  *   `{ color: "blue", size: "normal", brightness: "dark" }`.
  */
-export function setCardCover(t, cardId, cover) {
-  return apiFetch(t, `/cards/${cardId}`, {
+export async function setCardCover(t, cardId, cover) {
+  const token = await getToken(t);
+  if (!token) throw new Error(NOT_AUTHORIZED);
+
+  const url = new URL(`https://api.trello.com/1/cards/${cardId}`);
+  url.searchParams.set("key", APP_KEY);
+  url.searchParams.set("token", token);
+
+  // `cover` is a nested object, and Trello only parses it reliably from a
+  // JSON body — passing it as a JSON-encoded query param is accepted with a
+  // 200 but silently ignored, which is why colours appeared to do nothing.
+  // `{}` clears the cover.
+  const res = await fetch(url, {
     method: "PUT",
-    // Trello takes the cover as a JSON-encoded object; `{}` removes it.
-    params: { cover: JSON.stringify(cover ?? {}) },
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cover: cover ?? {} }),
   });
+
+  if (res.status === 401) {
+    await clearToken(t);
+    throw new Error(NOT_AUTHORIZED);
+  }
+  if (!res.ok) {
+    throw new Error(`Trello API error ${res.status}: ${await res.text()}`);
+  }
+  return res.json();
 }
 
 export function clearCardCover(t, cardId) {

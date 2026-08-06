@@ -129,9 +129,12 @@ export default function CoverEditor({ t }) {
       // and attached, because the cover API can't express a custom hex or a
       // gradient at all.
       if (selection.trello) {
+        // Prune *before* setting the colour, not after. A card whose cover is
+        // currently a generated attachment keeps that attachment as its cover
+        // otherwise, and the colour never takes.
         setStatusText("Applying cover…");
-        await setCardCover(t, cardId, { color: selection.trello, size, brightness });
         await pruneGeneratedCovers(t, cardId, null);
+        await setCardCover(t, cardId, { color: selection.trello, size, brightness });
       } else {
         setStatusText("Rendering cover…");
         const blob = await renderCover(selection);
@@ -206,19 +209,9 @@ export default function CoverEditor({ t }) {
       // Faint wash of the colour under consideration.
       style={{ "--ce-glow": selection ? `${selection.hex ?? selection.stops[0]}33` : "transparent" }}
     >
-      <div className="ce-bar">
-        <span className="ce-bar__title">Card cover</span>
-        <span className="ce-bar__sub">{cardName}</span>
-        <button
-          type="button"
-          className="ce-bar__close"
-          onClick={() => t.closeModal()}
-          aria-label="Close"
-        >
-          ✕
-        </button>
-      </div>
-
+      {/* No header here on purpose: Trello renders its own "Card Cover" title
+          bar with a close button above this iframe. Adding another one just
+          stacks two headers and two ✕ buttons. */}
       <div className="ce-split">
         <aside className="ce-aside">
           <div className={`ce-card ${isFull ? "ce-card--full" : ""}`}>

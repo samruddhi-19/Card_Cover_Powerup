@@ -1,9 +1,9 @@
-/* ==========================================================================
-   Card Cover — editor modal · "Split Studio"
+﻿/* ==========================================================================
+   Card Cover â€” editor modal Â· "Split Studio"
 
    A pinned card preview on the left, controls on the right. The preview is a
    real Trello card, not a colour chip, so you judge the cover on the thing it
-   goes on — and Standard vs Full-bleed is something you see rather than read.
+   goes on â€” and Standard vs Full-bleed is something you see rather than read.
 
    Dark-first and deliberately so: Trello dims the page behind a modal, and a
    focused surface you drop into and leave reads better committing to one
@@ -15,18 +15,22 @@
     Arial, sans-serif;
   --ce-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  --ce-bg: #0b0d11;
-  --ce-raise: rgba(255, 255, 255, 0.022);
-  --ce-raise-2: rgba(255, 255, 255, 0.05);
-  --ce-line: rgba(255, 255, 255, 0.07);
-  --ce-line-2: rgba(255, 255, 255, 0.14);
+  /* Trello's own dark surfaces, not a generic near-black. #1D2125 is the
+     board ground and #282E33 the raised card, so the modal sits in the same
+     tonal family as everything around it instead of punching a hole in it. */
+  --ce-bg: #1d2125;
+  --ce-elevated: #282e33;
+  --ce-raise: rgba(255, 255, 255, 0.035);
+  --ce-raise-2: rgba(255, 255, 255, 0.075);
+  --ce-line: rgba(255, 255, 255, 0.095);
+  --ce-line-2: rgba(255, 255, 255, 0.17);
 
-  --ce-text: #e7ecf3;
-  --ce-text-2: #96a1b5;
-  --ce-text-3: #6e7a90;
+  --ce-text: #b6c2cf;
+  --ce-text-2: #9fadbc;
+  --ce-text-3: #738496;
 
-  --ce-accent: #4c8dff;
-  --ce-accent-ink: #06121f;
+  --ce-accent: #579dff;
+  --ce-accent-ink: #1d2125;
   --ce-danger: #f0564a;
   --ce-ok: #2ba066;
 
@@ -84,57 +88,6 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   Header
-   -------------------------------------------------------------------------- */
-
-.ce-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 0 0 auto;
-  padding: 13px 18px;
-  background: var(--ce-raise);
-  border-bottom: 1px solid var(--ce-line);
-}
-
-.ce-bar__title {
-  font-size: 13px;
-  font-weight: 620;
-  letter-spacing: -0.01em;
-}
-
-.ce-bar__sub {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11.5px;
-  color: var(--ce-text-3);
-}
-
-.ce-bar__close {
-  margin-left: auto;
-  flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border: none;
-  border-radius: var(--ce-r-sm);
-  background: transparent;
-  color: var(--ce-text-2);
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color 150ms var(--ce-ease), color 150ms var(--ce-ease);
-}
-
-.ce-bar__close:hover {
-  background: var(--ce-raise-2);
-  color: var(--ce-text);
-}
-
-/* --------------------------------------------------------------------------
    Split
    -------------------------------------------------------------------------- */
 
@@ -171,30 +124,30 @@ body {
   width: 218px;
   border-radius: 10px;
   overflow: hidden;
-  background: #22272b;
+  background: var(--ce-elevated);
   box-shadow: 0 12px 26px -10px rgba(0, 0, 0, 0.7);
   transition: box-shadow 300ms var(--ce-ease);
 }
 
 .ce-card__cover {
   height: 92px;
-  background: #2c333c;
+  background: rgba(255,255,255,.08);
   transition: background 320ms var(--ce-ease), height 260ms var(--ce-ease-out);
 }
 
 /* Nothing chosen yet: a checkerboard, so "no cover" never reads as "a very
    dark cover". */
 .ce-card__cover--empty {
-  background-image: linear-gradient(45deg, #262c34 25%, transparent 25%),
-    linear-gradient(-45deg, #262c34 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #262c34 75%),
-    linear-gradient(-45deg, transparent 75%, #262c34 75%);
+  background-image: linear-gradient(45deg, #31383f 25%, transparent 25%),
+    linear-gradient(-45deg, #31383f 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #31383f 75%),
+    linear-gradient(-45deg, transparent 75%, #31383f 75%);
   background-size: 14px 14px;
   background-position: 0 0, 0 7px, 7px -7px, -7px 0;
 }
 
 /* Full-bleed puts the title on the cover, which is what Trello actually
-   does — the difference is demonstrated, not described. */
+   does â€” the difference is demonstrated, not described. */
 .ce-card--full .ce-card__cover {
   height: 118px;
   display: flex;
@@ -219,7 +172,7 @@ body {
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.3;
-  color: #c5cfdb;
+  color: var(--ce-text);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -236,7 +189,7 @@ body {
   align-items: center;
   gap: 7px;
   font-size: 10px;
-  color: #6e7a8a;
+  color: var(--ce-text-3);
 }
 
 .ce-card__av {
@@ -304,8 +257,8 @@ body {
 }
 
 .ce-tab[aria-selected="true"] {
-  background: #edf1f7;
-  color: #0b0d11;
+  background: #dce4ed;
+  color: #1d2125;
 }
 
 /* --------------------------------------------------------------------------
@@ -386,7 +339,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   Gradient gallery — each tile is a miniature card, because "Northern
+   Gradient gallery â€” each tile is a miniature card, because "Northern
    Lights" tells you nothing about what you'd be applying.
    -------------------------------------------------------------------------- */
 
@@ -410,7 +363,7 @@ body {
 .ce-tile__mini {
   border-radius: 9px;
   overflow: hidden;
-  background: #22272b;
+  background: var(--ce-elevated);
   box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.6);
   transition: transform 170ms var(--ce-ease-out), outline-color 150ms var(--ce-ease);
   outline: 2px solid transparent;
@@ -438,7 +391,7 @@ body {
 .ce-tile__line {
   height: 5px;
   border-radius: 3px;
-  background: #38414c;
+  background: rgba(255,255,255,.13);
 }
 
 .ce-tile__line--short {
@@ -484,8 +437,8 @@ body {
 }
 
 .ce-seg__option[aria-checked="true"] {
-  background: #edf1f7;
-  color: #0b0d11;
+  background: #dce4ed;
+  color: #1d2125;
 }
 
 /* --------------------------------------------------------------------------
@@ -582,7 +535,7 @@ body {
 }
 
 .ce-btn--go:hover:not(:disabled) {
-  background: #6ba1ff;
+  background: #85b8ff;
 }
 
 .ce-btn--ghost {
@@ -613,8 +566,7 @@ body {
 .ce-btn:focus-visible,
 .ce-sw:focus-visible,
 .ce-tile:focus-visible,
-.ce-seg__option:focus-visible,
-.ce-bar__close:focus-visible {
+.ce-seg__option:focus-visible {
   outline: 2px solid var(--ce-accent);
   outline-offset: 2px;
 }
@@ -681,3 +633,5 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+
