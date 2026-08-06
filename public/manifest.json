@@ -1,0 +1,17 @@
+{
+  "name": "Card Cover",
+  "details": "Set, change and clear Trello card covers straight from the card back.",
+  "icon": {
+    "url": "https://cdn-icons-png.flaticon.com/512/1828/1828817.png"
+  },
+  "author": "your-name-here",
+  "capabilities": [
+    "authorization-status",
+    "show-authorization",
+    "show-settings",
+    "card-buttons",
+    "card-detail-badges"
+  ],
+  "connectorName": "CardCover",
+  "tags": ["productivity", "design"]
+}
