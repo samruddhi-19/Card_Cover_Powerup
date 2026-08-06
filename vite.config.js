@@ -16,6 +16,7 @@ export default defineConfig({
         auth: resolve(__dirname, "auth.html"),
         settings: resolve(__dirname, "settings.html"),
         cover: resolve(__dirname, "cover.html"),
+        cardback: resolve(__dirname, "cardback.html"),
       },
     },
   },

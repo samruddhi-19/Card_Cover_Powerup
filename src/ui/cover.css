@@ -1,0 +1,606 @@
+/* ==========================================================================
+   Card Cover — card-back section UI
+
+   Rendered inside a Trello card-back iframe, so it has to sit convincingly
+   next to Trello's own chrome while feeling a step more refined. Tokens
+   below are Atlassian's neutral ramp, tightened with the softer shadows and
+   springier easing you see in Linear / Vercel / Notion.
+   ========================================================================== */
+
+:root {
+  --cc-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+
+  --cc-text: #172b4d;
+  --cc-text-subtle: #626f86;
+  --cc-text-subtlest: #8590a2;
+
+  --cc-surface: #ffffff;
+  --cc-surface-sunken: #f7f8f9;
+  --cc-surface-hover: #f1f2f4;
+  --cc-surface-pressed: #dcdfe4;
+
+  --cc-border: #dcdfe4;
+  --cc-border-strong: #b3b9c4;
+
+  --cc-primary: #0c66e4;
+  --cc-primary-hover: #0055cc;
+  --cc-primary-pressed: #09326c;
+  --cc-primary-subtle: #e9f2ff;
+
+  --cc-danger: #c9372c;
+  --cc-danger-hover: #ae2e24;
+  --cc-danger-subtle: #ffeceb;
+
+  --cc-focus: #388bff;
+
+  --cc-r-sm: 6px;
+  --cc-r-md: 8px;
+  --cc-r-lg: 12px;
+  --cc-r-xl: 16px;
+
+  /* Layered rather than single-blur: a tight contact shadow plus a wide
+     ambient one is what reads as "soft" instead of "smudged". */
+  --cc-shadow-sm: 0 1px 1px rgba(9, 30, 66, 0.06), 0 0 1px rgba(9, 30, 66, 0.12);
+  --cc-shadow-md: 0 2px 4px rgba(9, 30, 66, 0.08), 0 1px 2px rgba(9, 30, 66, 0.06);
+  --cc-shadow-lg: 0 8px 16px -4px rgba(9, 30, 66, 0.14),
+    0 2px 4px rgba(9, 30, 66, 0.06);
+
+  --cc-ease: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --cc-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --cc-dur: 200ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cc-text: #b6c2cf;
+    --cc-text-subtle: #9fadbc;
+    --cc-text-subtlest: #738496;
+
+    --cc-surface: #22272b;
+    --cc-surface-sunken: #1d2125;
+    --cc-surface-hover: #2c333a;
+    --cc-surface-pressed: #454f59;
+
+    --cc-border: #38414a;
+    --cc-border-strong: #596773;
+
+    --cc-primary: #579dff;
+    --cc-primary-hover: #85b8ff;
+    --cc-primary-pressed: #cce0ff;
+    --cc-primary-subtle: #1c2b41;
+
+    --cc-danger: #f87168;
+    --cc-danger-hover: #ff9c8f;
+    --cc-danger-subtle: #42221f;
+
+    --cc-shadow-sm: 0 1px 1px rgba(3, 4, 4, 0.5);
+    --cc-shadow-md: 0 2px 4px rgba(3, 4, 4, 0.5);
+    --cc-shadow-lg: 0 8px 16px -4px rgba(3, 4, 4, 0.6);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body {
+  font-family: var(--cc-font);
+  color: var(--cc-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.cc-root {
+  padding: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Panel — the shared shell for both states
+   -------------------------------------------------------------------------- */
+
+.cc-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: var(--cc-r-lg);
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  box-shadow: var(--cc-shadow-sm);
+  transition: border-color var(--cc-dur) var(--cc-ease),
+    box-shadow var(--cc-dur) var(--cc-ease),
+    background-color var(--cc-dur) var(--cc-ease);
+}
+
+/* Empty state gets a dashed, faintly tinted "drop zone" treatment so the
+   difference between "nothing here yet" and "something here" is legible at a
+   glance, before you read a word of it. */
+.cc-panel--empty {
+  border-style: dashed;
+  border-color: var(--cc-border-strong);
+  background: linear-gradient(
+    180deg,
+    var(--cc-surface-sunken) 0%,
+    var(--cc-surface) 100%
+  );
+}
+
+.cc-panel--empty:hover {
+  border-color: var(--cc-primary);
+  background: var(--cc-primary-subtle);
+}
+
+.cc-panel--filled:hover {
+  box-shadow: var(--cc-shadow-md);
+}
+
+.cc-panel__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cc-panel__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.06px;
+  line-height: 1.3;
+  color: var(--cc-text);
+}
+
+.cc-panel__meta {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--cc-text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cc-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* --------------------------------------------------------------------------
+   Thumbnail — icon tile (empty) / live colour chip (filled)
+   -------------------------------------------------------------------------- */
+
+.cc-thumb {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 42px;
+  border-radius: var(--cc-r-md);
+  display: grid;
+  place-items: center;
+  color: var(--cc-text-subtlest);
+  background: var(--cc-surface-hover);
+  box-shadow: inset 0 0 0 1px rgba(9, 30, 66, 0.06);
+  transition: transform var(--cc-dur) var(--cc-ease-out),
+    background-color var(--cc-dur) var(--cc-ease);
+}
+
+.cc-thumb--filled {
+  box-shadow: inset 0 0 0 1px rgba(9, 30, 66, 0.12), var(--cc-shadow-sm);
+}
+
+/* Full-bleed covers get a top band, echoing how the cover actually renders
+   on the card, so the preview teaches the setting rather than just naming it. */
+.cc-thumb--full {
+  position: relative;
+  overflow: hidden;
+}
+
+.cc-thumb--full::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.16), transparent 62%);
+}
+
+.cc-panel--filled:hover .cc-thumb {
+  transform: scale(1.04);
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+
+.cc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--cc-r-sm);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 140ms var(--cc-ease),
+    border-color 140ms var(--cc-ease), color 140ms var(--cc-ease),
+    box-shadow 140ms var(--cc-ease), transform 140ms var(--cc-ease-out);
+}
+
+.cc-btn:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+.cc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cc-btn--primary {
+  background: var(--cc-primary);
+  color: #fff;
+  box-shadow: var(--cc-shadow-sm);
+}
+
+.cc-btn--primary:hover:not(:disabled) {
+  background: var(--cc-primary-hover);
+  box-shadow: var(--cc-shadow-md);
+}
+
+.cc-btn--primary:active:not(:disabled) {
+  background: var(--cc-primary-pressed);
+}
+
+@media (prefers-color-scheme: dark) {
+  .cc-btn--primary {
+    color: #1d2125;
+  }
+}
+
+.cc-btn--secondary {
+  background: var(--cc-surface);
+  border-color: var(--cc-border);
+  color: var(--cc-text);
+  box-shadow: var(--cc-shadow-sm);
+}
+
+.cc-btn--secondary:hover:not(:disabled) {
+  background: var(--cc-surface-hover);
+  border-color: var(--cc-border-strong);
+}
+
+.cc-btn--ghost {
+  background: transparent;
+  color: var(--cc-text-subtle);
+  padding: 8px 10px;
+}
+
+.cc-btn--ghost:hover:not(:disabled) {
+  background: var(--cc-surface-hover);
+  color: var(--cc-text);
+}
+
+.cc-btn--danger {
+  background: transparent;
+  color: var(--cc-danger);
+  padding: 8px 10px;
+}
+
+.cc-btn--danger:hover:not(:disabled) {
+  background: var(--cc-danger-subtle);
+  color: var(--cc-danger-hover);
+}
+
+/* One consistent focus ring on every interactive element. :focus-visible so
+   it appears for keyboard users without ringing every mouse click. */
+.cc-btn:focus-visible,
+.cc-swatch:focus-visible,
+.cc-seg__option:focus-visible {
+  outline: 2px solid var(--cc-focus);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Editor — expands in place beneath the panel
+   -------------------------------------------------------------------------- */
+
+/* Animating grid-template-rows 0fr -> 1fr gives a real height transition
+   without hardcoding a pixel height the content might outgrow. */
+.cc-editor {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 260ms var(--cc-ease-out),
+    opacity 180ms var(--cc-ease), margin-top 260ms var(--cc-ease-out);
+  opacity: 0;
+  margin-top: 0;
+}
+
+.cc-editor--open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 10px;
+}
+
+.cc-editor__clip {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* `inert` on the collapsed editor keeps its controls out of the tab order,
+   but browsers older than Chrome 102 / Safari 17 ignore it. visibility:hidden
+   removes them from the tab order everywhere; the delay lets the collapse
+   animation finish playing before the content disappears. */
+.cc-editor__inner {
+  visibility: hidden;
+  transition: visibility 0s linear 260ms;
+}
+
+.cc-editor--open .cc-editor__inner {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.cc-editor__inner {
+  padding: 14px;
+  border-radius: var(--cc-r-lg);
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  box-shadow: var(--cc-shadow-md);
+}
+
+.cc-field + .cc-field {
+  margin-top: 16px;
+}
+
+.cc-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--cc-text-subtle);
+}
+
+/* --------------------------------------------------------------------------
+   Swatch grid
+   -------------------------------------------------------------------------- */
+
+/* auto-fit + minmax keeps the palette on one tidy grid whether the card back
+   is wide on desktop or narrow on mobile — no breakpoints needed. */
+.cc-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+  gap: 8px;
+}
+
+.cc-swatch {
+  position: relative;
+  height: 38px;
+  padding: 0;
+  border: none;
+  border-radius: var(--cc-r-md);
+  cursor: pointer;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 1px rgba(9, 30, 66, 0.1);
+  transition: transform 160ms var(--cc-ease-out),
+    box-shadow 160ms var(--cc-ease);
+}
+
+.cc-swatch:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: inset 0 0 0 1px rgba(9, 30, 66, 0.1), var(--cc-shadow-lg);
+}
+
+.cc-swatch[aria-checked="true"] {
+  box-shadow: inset 0 0 0 1px rgba(9, 30, 66, 0.1), 0 0 0 2px var(--cc-surface),
+    0 0 0 4px var(--cc-primary);
+}
+
+.cc-swatch__check {
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 160ms var(--cc-ease), transform 160ms var(--cc-ease-out);
+  filter: drop-shadow(0 1px 1px rgba(9, 30, 66, 0.35));
+}
+
+.cc-swatch[aria-checked="true"] .cc-swatch__check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* --------------------------------------------------------------------------
+   Segmented control
+   -------------------------------------------------------------------------- */
+
+.cc-seg {
+  display: inline-flex;
+  width: 100%;
+  padding: 3px;
+  gap: 3px;
+  border-radius: var(--cc-r-md);
+  background: var(--cc-surface-sunken);
+  border: 1px solid var(--cc-border);
+}
+
+.cc-seg__option {
+  flex: 1 1 0;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--cc-r-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cc-text-subtle);
+  cursor: pointer;
+  transition: background-color 140ms var(--cc-ease),
+    color 140ms var(--cc-ease), box-shadow 140ms var(--cc-ease);
+}
+
+.cc-seg__option:hover:not([aria-checked="true"]) {
+  color: var(--cc-text);
+}
+
+.cc-seg__option[aria-checked="true"] {
+  background: var(--cc-surface);
+  color: var(--cc-text);
+  box-shadow: var(--cc-shadow-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Editor footer
+   -------------------------------------------------------------------------- */
+
+.cc-editor__footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cc-border);
+}
+
+.cc-editor__footer .cc-spacer {
+  flex: 1 1 auto;
+}
+
+/* --------------------------------------------------------------------------
+   Feedback
+   -------------------------------------------------------------------------- */
+
+.cc-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: var(--cc-r-md);
+  background: var(--cc-danger-subtle);
+  color: var(--cc-danger);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.cc-skeleton {
+  height: 72px;
+  border-radius: var(--cc-r-lg);
+  background: linear-gradient(
+    90deg,
+    var(--cc-surface-sunken) 25%,
+    var(--cc-surface-hover) 37%,
+    var(--cc-surface-sunken) 63%
+  );
+  background-size: 400% 100%;
+  animation: cc-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes cc-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+.cc-spin {
+  animation: cc-rotate 700ms linear infinite;
+}
+
+@keyframes cc-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Screen-reader-only live region for state announcements. */
+.cc-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive + motion preferences
+   -------------------------------------------------------------------------- */
+
+/* Narrow card backs (mobile, or a collapsed browser): stack the panel so the
+   actions get full width instead of crushing the title to two characters. */
+@media (max-width: 380px) {
+  .cc-panel {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .cc-panel__body {
+    flex: 1 1 140px;
+  }
+
+  .cc-panel__actions {
+    flex: 1 1 100%;
+  }
+
+  .cc-panel__actions .cc-btn {
+    flex: 1 1 auto;
+  }
+}
+
+/* Touch targets: coarse pointers get the 44px minimum. */
+@media (pointer: coarse) {
+  .cc-btn {
+    min-height: 44px;
+  }
+
+  .cc-swatch {
+    height: 44px;
+  }
+
+  .cc-seg__option {
+    min-height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Windows high-contrast / forced colours: restore borders the custom
+   backgrounds would otherwise erase. */
+@media (forced-colors: active) {
+  .cc-panel,
+  .cc-editor__inner,
+  .cc-swatch,
+  .cc-seg {
+    border: 1px solid CanvasText;
+  }
+
+  .cc-swatch[aria-checked="true"] {
+    outline: 3px solid Highlight;
+    outline-offset: 1px;
+  }
+}

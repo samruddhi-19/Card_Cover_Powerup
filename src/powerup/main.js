@@ -44,6 +44,23 @@ TrelloPowerUp.initialize({
     ];
   },
 
+  // The cover UI lives inline on the card back (below Description), which is
+  // where members expect to manage a card's own attributes. `t.signUrl` is
+  // what lets Trello pass card context into the iframe.
+  "card-back-section": function (t) {
+    return {
+      title: "Card Cover",
+      icon: ICON,
+      content: {
+        type: "iframe",
+        url: t.signUrl("./cardback.html"),
+        // Starting height only — CoverStudio calls t.sizeTo() once it knows
+        // whether it's rendering the empty, filled, or expanded state.
+        height: 92,
+      },
+    };
+  },
+
   "card-buttons": function () {
     return [
       {
