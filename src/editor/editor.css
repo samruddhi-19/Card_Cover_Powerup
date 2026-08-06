@@ -56,6 +56,10 @@ body {
   padding: 0;
   height: 100%;
   background: var(--ce-bg);
+  /* The body must not scroll. Without this the iframe grows its own
+     scrollbar alongside the one in the right column, and you get two
+     stacked scrollbars for a single overflowing region. */
+  overflow: hidden;
 }
 
 body {
@@ -66,11 +70,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Fixed to the viewport rather than min-height, so the footer stays pinned
+   and scrolling happens in exactly one place: .ce-main. */
 .ce-root {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   isolation: isolate;
 }
 
@@ -114,6 +121,34 @@ body {
   align-content: start;
   padding: 18px 22px 26px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+/* WebKit: a thin, track-less thumb that sits inside the padding rather than
+   carving a grey gutter out of the panel. The transparent border plus
+   background-clip is what gives the thumb breathing room without a track. */
+.ce-main::-webkit-scrollbar {
+  width: 11px;
+}
+
+.ce-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ce-main::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 99px;
+}
+
+.ce-main::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+  background-clip: content-box;
 }
 
 /* --------------------------------------------------------------------------
