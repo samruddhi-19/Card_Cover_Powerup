@@ -61,6 +61,35 @@ export function CheckIcon(props) {
   );
 }
 
+export function PaletteIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M8 1.9c3.4 0 6.1 2.5 6.1 5.6 0 1.8-1.4 2.7-2.8 2.7h-1c-.8 0-1.4.6-1.4 1.4 0 .3.1.6.3.9.2.3.3.6.3.9 0 .8-.6 1.4-1.5 1.4-3.4 0-6.1-2.9-6.1-6.4S4.6 1.9 8 1.9Z" />
+      <circle cx="5.4" cy="7.2" r=".95" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="5.2" r=".95" fill="currentColor" stroke="none" />
+      <circle cx="10.7" cy="7.2" r=".95" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function TextIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 3.3h10M8 3.3v9.4M5.9 12.7h4.2" />
+    </svg>
+  );
+}
+
+export function LayersIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M8 1.9 1.9 5.2 8 8.5l6.1-3.3L8 1.9Z" />
+      <path d="M1.9 8.4 8 11.7l6.1-3.3" />
+      <path d="M1.9 11.4 8 14.7l6.1-3.3" />
+    </svg>
+  );
+}
+
 export function SpinnerIcon(props) {
   return (
     <svg {...base} className="cc-spin" {...props}>

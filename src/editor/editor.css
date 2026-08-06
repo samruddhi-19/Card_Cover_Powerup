@@ -1,0 +1,652 @@
+/* ==========================================================================
+   Card Cover — editor modal
+
+   Dark-first, the way your reference is: a modal is a focused surface you
+   drop into and leave, so committing to one confident treatment reads better
+   than a theme that hedges. Trello dims the page behind it, which makes the
+   dark panel feel deliberate rather than mismatched.
+   ========================================================================== */
+
+:root {
+  --ce-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+
+  --ce-bg: #0e1116;
+  --ce-surface: #161b22;
+  --ce-surface-2: #1c232c;
+  --ce-surface-3: #232b36;
+
+  --ce-border: #262e38;
+  --ce-border-strong: #38424f;
+
+  --ce-text: #e6edf3;
+  --ce-text-subtle: #9aa7b4;
+  --ce-text-faint: #6b7885;
+
+  --ce-accent: #3b82f6;
+  --ce-accent-hover: #2f74e6;
+  --ce-success: #1f9d63;
+  --ce-danger: #f0564a;
+
+  --ce-r-sm: 6px;
+  --ce-r-md: 10px;
+  --ce-r-lg: 14px;
+
+  --ce-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --ce-ease: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --ce-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--ce-bg);
+}
+
+body {
+  font-family: var(--ce-font);
+  color: var(--ce-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.ce-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* --------------------------------------------------------------------------
+   Live preview
+   -------------------------------------------------------------------------- */
+
+.ce-preview {
+  position: relative;
+  height: 148px;
+  flex: 0 0 auto;
+  background: var(--ce-surface-2);
+  overflow: hidden;
+  transition: background 320ms var(--ce-ease);
+}
+
+/* Faint checkerboard shows through when nothing is selected, so "no cover"
+   is visibly distinct from "a very dark cover". */
+.ce-preview--empty {
+  background-image: linear-gradient(45deg, #191f27 25%, transparent 25%),
+    linear-gradient(-45deg, #191f27 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #191f27 75%),
+    linear-gradient(-45deg, transparent 75%, #191f27 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.ce-preview__card {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(320px, 70%);
+  padding: 8px 12px;
+  border-radius: var(--ce-r-sm);
+  background: rgba(14, 17, 22, 0.72);
+  backdrop-filter: blur(8px);
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.ce-preview__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ce-preview__badge {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+   Toolbar — tabs + sync toggle
+   -------------------------------------------------------------------------- */
+
+.ce-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  background: var(--ce-surface);
+  border-bottom: 1px solid var(--ce-border);
+}
+
+.ce-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--ce-r-md);
+  background: var(--ce-bg);
+  border: 1px solid var(--ce-border);
+}
+
+.ce-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--ce-r-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--ce-text-subtle);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 150ms var(--ce-ease), color 150ms var(--ce-ease);
+}
+
+.ce-tab:hover:not([aria-selected="true"]):not(:disabled) {
+  color: var(--ce-text);
+  background: var(--ce-surface-2);
+}
+
+.ce-tab[aria-selected="true"] {
+  background: #fff;
+  color: #10151b;
+}
+
+.ce-tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ce-toolbar__spacer {
+  flex: 1 1 auto;
+}
+
+/* Sync pill */
+.ce-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--ce-r-md);
+  background: var(--ce-surface-2);
+  border: 1px solid var(--ce-border);
+  transition: border-color 180ms var(--ce-ease), background-color 180ms var(--ce-ease);
+}
+
+.ce-sync--on {
+  background: rgba(31, 157, 99, 0.14);
+  border-color: rgba(31, 157, 99, 0.45);
+}
+
+.ce-sync__text {
+  line-height: 1.25;
+}
+
+.ce-sync__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ce-text-subtle);
+}
+
+.ce-sync--on .ce-sync__title {
+  color: #4ade80;
+}
+
+.ce-sync__hint {
+  font-size: 10.5px;
+  color: var(--ce-text-faint);
+}
+
+.ce-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--ce-surface-3);
+  cursor: pointer;
+  transition: background-color 200ms var(--ce-ease);
+}
+
+.ce-switch[aria-checked="true"] {
+  background: var(--ce-success);
+}
+
+.ce-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: transform 220ms var(--ce-ease-out);
+}
+
+.ce-switch[aria-checked="true"]::after {
+  transform: translateX(16px);
+}
+
+/* --------------------------------------------------------------------------
+   Panels
+   -------------------------------------------------------------------------- */
+
+.ce-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.ce-section + .ce-section {
+  margin-top: 26px;
+}
+
+.ce-section__head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ce-section__title {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ce-text-subtle);
+}
+
+.ce-section__rule {
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--ce-border);
+}
+
+.ce-section__note {
+  font-size: 11.5px;
+  color: var(--ce-text-faint);
+}
+
+/* Solid swatches */
+.ce-solids {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 12px;
+}
+
+.ce-solid {
+  position: relative;
+  height: 58px;
+  padding: 0;
+  border: none;
+  border-radius: var(--ce-r-md);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: transform 180ms var(--ce-ease-out), box-shadow 180ms var(--ce-ease);
+}
+
+.ce-solid:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 10px 20px -6px rgba(0, 0, 0, 0.7);
+}
+
+/* Gradient tiles */
+.ce-gradients {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.ce-gradient {
+  position: relative;
+  height: 62px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  border: none;
+  border-radius: var(--ce-r-md);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: left;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: transform 180ms var(--ce-ease-out), box-shadow 180ms var(--ce-ease);
+}
+
+.ce-gradient:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 10px 20px -6px rgba(0, 0, 0, 0.7);
+}
+
+/* Text sits on unpredictable gradient stops, so it carries its own shadow
+   rather than relying on the backdrop for contrast. */
+.ce-gradient__label {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+/* Shared selected state */
+.ce-solid[aria-checked="true"],
+.ce-gradient[aria-checked="true"] {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 0 2px var(--ce-bg), 0 0 0 4px var(--ce-accent);
+}
+
+.ce-check {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(14, 17, 22, 0.72);
+  color: #fff;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 160ms var(--ce-ease), transform 160ms var(--ce-ease-out);
+}
+
+[aria-checked="true"] > .ce-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Marks swatches that need an upload rather than the instant native path. */
+.ce-badge-upload {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(14, 17, 22, 0.66);
+  color: #cbd5e1;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+   Segmented control (Text panel)
+   -------------------------------------------------------------------------- */
+
+.ce-seg {
+  display: inline-flex;
+  width: 100%;
+  max-width: 340px;
+  padding: 3px;
+  gap: 3px;
+  border-radius: var(--ce-r-md);
+  background: var(--ce-bg);
+  border: 1px solid var(--ce-border);
+}
+
+.ce-seg__option {
+  flex: 1 1 0;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--ce-r-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ce-text-subtle);
+  cursor: pointer;
+  transition: background-color 150ms var(--ce-ease), color 150ms var(--ce-ease);
+}
+
+.ce-seg__option:hover:not([aria-checked="true"]) {
+  color: var(--ce-text);
+}
+
+.ce-seg__option[aria-checked="true"] {
+  background: var(--ce-surface-3);
+  color: var(--ce-text);
+}
+
+/* --------------------------------------------------------------------------
+   Image panel
+   -------------------------------------------------------------------------- */
+
+.ce-drop {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 34px 20px;
+  border: 1.5px dashed var(--ce-border-strong);
+  border-radius: var(--ce-r-lg);
+  background: var(--ce-surface);
+  text-align: center;
+  transition: border-color 180ms var(--ce-ease), background-color 180ms var(--ce-ease);
+}
+
+.ce-drop--active {
+  border-color: var(--ce-accent);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.ce-drop__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ce-drop__hint {
+  font-size: 12px;
+  color: var(--ce-text-faint);
+}
+
+/* --------------------------------------------------------------------------
+   Empty / placeholder panel
+   -------------------------------------------------------------------------- */
+
+.ce-placeholder {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  padding: 48px 20px;
+  border: 1px solid var(--ce-border);
+  border-radius: var(--ce-r-lg);
+  background: var(--ce-surface);
+  text-align: center;
+  color: var(--ce-text-faint);
+}
+
+.ce-placeholder__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ce-text-subtle);
+}
+
+.ce-placeholder__body {
+  font-size: 12.5px;
+  max-width: 42ch;
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+
+.ce-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 14px 20px;
+  background: var(--ce-surface);
+  border-top: 1px solid var(--ce-border);
+}
+
+.ce-footer__status {
+  flex: 1 1 auto;
+  font-size: 12.5px;
+  color: var(--ce-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ce-footer__status--error {
+  color: var(--ce-danger);
+}
+
+.ce-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--ce-r-sm);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 150ms var(--ce-ease), border-color 150ms var(--ce-ease),
+    color 150ms var(--ce-ease), transform 150ms var(--ce-ease-out);
+}
+
+.ce-btn:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+.ce-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ce-btn--primary {
+  background: var(--ce-accent);
+  color: #fff;
+}
+
+.ce-btn--primary:hover:not(:disabled) {
+  background: var(--ce-accent-hover);
+}
+
+.ce-btn--ghost {
+  background: transparent;
+  border-color: var(--ce-border-strong);
+  color: var(--ce-text-subtle);
+}
+
+.ce-btn--ghost:hover:not(:disabled) {
+  background: var(--ce-surface-2);
+  color: var(--ce-text);
+}
+
+.ce-btn--danger {
+  background: transparent;
+  color: var(--ce-danger);
+}
+
+.ce-btn--danger:hover:not(:disabled) {
+  background: rgba(240, 86, 74, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   Focus, motion, density
+   -------------------------------------------------------------------------- */
+
+.ce-tab:focus-visible,
+.ce-btn:focus-visible,
+.ce-solid:focus-visible,
+.ce-gradient:focus-visible,
+.ce-switch:focus-visible,
+.ce-seg__option:focus-visible {
+  outline: 2px solid var(--ce-accent);
+  outline-offset: 2px;
+}
+
+.ce-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ce-spin {
+  animation: ce-rotate 700ms linear infinite;
+}
+
+@keyframes ce-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 560px) {
+  .ce-toolbar {
+    gap: 10px;
+  }
+
+  .ce-tabs {
+    order: 1;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .ce-sync {
+    order: 2;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ce-preview {
+    height: 116px;
+  }
+}
+
+@media (pointer: coarse) {
+  .ce-btn,
+  .ce-tab {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

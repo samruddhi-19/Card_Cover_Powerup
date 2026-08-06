@@ -76,3 +76,62 @@ export function setCardCover(t, cardId, cover) {
 export function clearCardCover(t, cardId) {
   return setCardCover(t, cardId, null);
 }
+
+/**
+ * Uploads a rendered cover image and makes it the card's cover in one call.
+ *
+ * This is how gradients and non-Trello colours get applied at all — the cover
+ * API only takes its ten named colours, so anything else has to arrive as an
+ * attachment. `setCover=true` saves a second round trip to PUT the cover.
+ *
+ * Note this goes through fetch directly rather than apiFetch: the body is
+ * multipart FormData, not query params.
+ */
+export async function uploadCoverAttachment(t, cardId, blob, fileName) {
+  const token = await getToken(t);
+  if (!token) throw new Error(NOT_AUTHORIZED);
+
+  const url = new URL(`https://api.trello.com/1/cards/${cardId}/attachments`);
+  url.searchParams.set("key", APP_KEY);
+  url.searchParams.set("token", token);
+  url.searchParams.set("setCover", "true");
+
+  const body = new FormData();
+  body.append("file", blob, fileName);
+  body.append("name", fileName);
+
+  const res = await fetch(url, { method: "POST", body });
+
+  if (res.status === 401) {
+    await clearToken(t);
+    throw new Error(NOT_AUTHORIZED);
+  }
+  if (!res.ok) {
+    throw new Error(`Trello API error ${res.status}: ${await res.text()}`);
+  }
+  return res.json();
+}
+
+/**
+ * Removes attachments this Power-Up previously uploaded as covers.
+ *
+ * Without this, every gradient change would leave its predecessor behind and
+ * the card's attachment list would fill up with dead cover images.
+ */
+export async function pruneGeneratedCovers(t, cardId, keepId) {
+  const attachments = await apiFetch(t, `/cards/${cardId}/attachments`, {
+    params: { fields: "id,name" },
+  });
+
+  const stale = attachments.filter(
+    (a) => a.id !== keepId && /^card-cover-[\w-]+\.png$/.test(a.name)
+  );
+
+  await Promise.all(
+    stale.map((a) =>
+      apiFetch(t, `/cards/${cardId}/attachments/${a.id}`, { method: "DELETE" }).catch(
+        () => {}
+      )
+    )
+  );
+}

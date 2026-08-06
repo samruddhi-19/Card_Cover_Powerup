@@ -7,6 +7,7 @@ const SETTINGS_KEY = "settings";
 export const DEFAULT_SETTINGS = {
   defaultColor: "blue",
   coverSize: "normal", // "normal" | "full"
+  dynamicSync: true,
 };
 
 export async function getSettings(t) {

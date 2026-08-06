@@ -17,6 +17,7 @@ export default defineConfig({
         settings: resolve(__dirname, "settings.html"),
         cover: resolve(__dirname, "cover.html"),
         cardback: resolve(__dirname, "cardback.html"),
+        editor: resolve(__dirname, "editor.html"),
       },
     },
   },
