@@ -544,8 +544,10 @@ body {
    -------------------------------------------------------------------------- */
 
 /* Narrow card backs (mobile, or a collapsed browser): stack the panel so the
-   actions get full width instead of crushing the title to two characters. */
-@media (max-width: 380px) {
+   actions get full width instead of crushing the title to two characters.
+   Breakpoint sits at 460px because the two full-length button labels need
+   roughly 300px between them before the title starts losing words. */
+@media (max-width: 460px) {
   .cc-panel {
     flex-wrap: wrap;
     gap: 12px;

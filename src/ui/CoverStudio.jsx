@@ -206,43 +206,36 @@ export default function CoverStudio({ t }) {
           </p>
         </div>
 
+        {/* Both actions are always present. Only one is ever applicable, so
+            rather than hiding the other we shift emphasis: the live action
+            takes primary styling, the inapplicable one greys out with a
+            title explaining why. The pair stays put, so the section never
+            reflows as covers come and go. */}
         <div className="cc-panel__actions">
-          {cover ? (
-            <>
-              <button
-                type="button"
-                className="cc-btn cc-btn--secondary"
-                onClick={editing ? closeEditor : openEditor}
-                disabled={busy}
-                aria-expanded={editing}
-                aria-controls="cc-editor"
-              >
-                <SwapIcon />
-                {editing ? "Close" : "Replace"}
-              </button>
-              <button
-                type="button"
-                className="cc-btn cc-btn--danger"
-                onClick={handleRemove}
-                disabled={busy}
-                aria-label="Remove cover"
-              >
-                {busy ? <SpinnerIcon /> : <TrashIcon />}
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="cc-btn cc-btn--primary"
-              onClick={editing ? closeEditor : openEditor}
-              disabled={busy}
-              aria-expanded={editing}
-              aria-controls="cc-editor"
-            >
-              <PlusIcon />
-              {editing ? "Close" : "Add cover"}
-            </button>
-          )}
+          <button
+            type="button"
+            className={`cc-btn ${cover ? "cc-btn--secondary" : "cc-btn--primary"}`}
+            onClick={editing && !cover ? closeEditor : openEditor}
+            disabled={busy || Boolean(cover)}
+            title={cover ? "This card already has a cover — use Edit Card Cover" : undefined}
+            aria-expanded={!cover ? editing : undefined}
+            aria-controls={!cover ? "cc-editor" : undefined}
+          >
+            <PlusIcon />
+            {editing && !cover ? "Close" : "Add Card Cover"}
+          </button>
+          <button
+            type="button"
+            className={`cc-btn ${cover ? "cc-btn--primary" : "cc-btn--secondary"}`}
+            onClick={editing && cover ? closeEditor : openEditor}
+            disabled={busy || !cover}
+            title={!cover ? "Add a cover first" : undefined}
+            aria-expanded={cover ? editing : undefined}
+            aria-controls={cover ? "cc-editor" : undefined}
+          >
+            <SwapIcon />
+            {editing && cover ? "Close" : "Edit Card Cover"}
+          </button>
         </div>
       </div>
 
@@ -295,6 +288,19 @@ export default function CoverStudio({ t }) {
             </div>
 
             <div className="cc-editor__footer">
+              {/* Only offered once a cover actually exists — there's nothing
+                  to remove while adding one. */}
+              {cover && (
+                <button
+                  type="button"
+                  className="cc-btn cc-btn--danger"
+                  onClick={handleRemove}
+                  disabled={busy}
+                >
+                  <TrashIcon />
+                  Remove
+                </button>
+              )}
               <span className="cc-spacer" />
               <button
                 type="button"
