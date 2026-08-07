@@ -14,13 +14,22 @@ import {
   gradientCss,
   coverFileName,
 } from "../lib/covers.js";
-import { renderCover, hasText, previewFontScale } from "../lib/coverRender.js";
+import {
+  renderCover,
+  hasText,
+  hasBadges,
+  previewFontScale,
+  BADGE,
+} from "../lib/coverRender.js";
+import { labelItems, memberItems, dueItem } from "../lib/cardItems.js";
 import { readableInk } from "../ui/palette.js";
 import {
   PaletteIcon,
   LayersIcon,
   TextIcon,
   ImageIcon,
+  TagIcon,
+  ClockIcon,
   CheckIcon,
   SpinnerIcon,
   TrashIcon,
@@ -32,7 +41,27 @@ const TABS = [
   { id: "gradient", label: "Gradient", Icon: LayersIcon },
   { id: "image", label: "Image", Icon: ImageIcon },
   { id: "text", label: "Text", Icon: TextIcon },
+  // "Items" rather than "Card items": five tabs already fill the row at the
+  // width Trello gives the modal, and a longer label wraps it.
+  { id: "items", label: "Items", Icon: TagIcon },
 ];
+
+// Where a click — rather than a drag — puts the next badge. Walked in order,
+// so clicking through the tray lays items out instead of stacking them.
+const BADGE_SLOTS = [
+  [26, 24], [26, 50], [26, 76],
+  [62, 24], [62, 50], [62, 76],
+  [44, 38], [44, 62],
+];
+
+// Eight is already a busy cover at 218px wide. Past that the badges overlap
+// faster than they inform.
+const MAX_BADGES = BADGE_SLOTS.length;
+
+// Keeps a badge's whole body inside the cover, since x/y are its centre.
+const clamp = (value, lo, hi) => Math.max(lo, Math.min(hi, value));
+const clampX = (x) => clamp(x, 6, 94);
+const clampY = (y) => clamp(y, 10, 90);
 
 const SIZE_OPTIONS = [
   { value: "normal", label: "Standard" },
@@ -86,9 +115,60 @@ export default function CoverEditor({ t }) {
     align: "left",
   });
 
+  // The card's own labels, members and due date — the tray is built from
+  // these, never from placeholders.
+  const [items, setItems] = useState({ labels: [], members: [], due: null });
+  // What's been dropped on the cover: the tray item plus where it landed.
+  const [badges, setBadges] = useState([]);
+  const [badgeTarget, setBadgeTarget] = useState(false);
+
   const patchText = (patch) => setText((prev) => ({ ...prev, ...patch }));
 
   const fileRef = useRef(null);
+  const coverRef = useRef(null);
+  const draggingItem = useRef(null);
+
+  const trayItems = [...items.labels, ...items.members, ...(items.due ? [items.due] : [])];
+  const placedIds = new Set(badges.map((badge) => badge.id));
+
+  function addBadge(item, x, y) {
+    if (placedIds.has(item.id) || badges.length >= MAX_BADGES) return;
+    setBadges((prev) => [...prev, { ...item, x: clampX(x), y: clampY(y) }]);
+  }
+
+  function removeBadge(id) {
+    setBadges((prev) => prev.filter((badge) => badge.id !== id));
+  }
+
+  function moveBadge(id, x, y) {
+    setBadges((prev) =>
+      prev.map((badge) =>
+        badge.id === id ? { ...badge, x: clampX(x), y: clampY(y) } : badge
+      )
+    );
+  }
+
+  // Click-to-place, and the keyboard path: a drag is not reachable without a
+  // pointer, so every tray pill also toggles.
+  function toggleBadge(item) {
+    if (placedIds.has(item.id)) {
+      removeBadge(item.id);
+      return;
+    }
+    const taken = new Set(badges.map((badge) => `${badge.x}:${badge.y}`));
+    const slot = BADGE_SLOTS.find(([x, y]) => !taken.has(`${x}:${y}`));
+    if (slot) addBadge(item, slot[0], slot[1]);
+  }
+
+  /** Pointer position as a percentage of the cover, which is how badges are stored. */
+  function pointToPercent(clientX, clientY) {
+    const box = coverRef.current?.getBoundingClientRect();
+    if (!box) return null;
+    return {
+      x: ((clientX - box.left) / box.width) * 100,
+      y: ((clientY - box.top) / box.height) * 100,
+    };
+  }
 
   useEffect(() => {
     (async () => {
@@ -107,8 +187,21 @@ export default function CoverEditor({ t }) {
         }
 
         try {
-          const card = await t.card("id", "name", "cover");
+          const card = await t.card(
+            "id",
+            "name",
+            "cover",
+            "labels",
+            "members",
+            "due",
+            "dueComplete"
+          );
           if (card?.id) {
+            setItems({
+              labels: labelItems(card.labels),
+              members: memberItems(card.members),
+              due: dueItem(card.due, card.dueComplete),
+            });
             if (!argCardId) {
               setCardId(card.id);
               setCardName(card.name ?? "");
@@ -153,12 +246,14 @@ export default function CoverEditor({ t }) {
       // Trello colours apply instantly. Everything else has to be rasterised
       // and attached, because the cover API can't express a custom hex or a
       // gradient at all.
-      // A Trello colour cover can't carry text — the API has no field for it.
-      // So the moment there's any heading or subheading, even a native colour
-      // has to be rendered and attached instead.
+      // A Trello colour cover can't carry text — the API has no field for it,
+      // and none for badges either. So the moment there's a heading, a
+      // subheading or a single dropped item, even a native colour has to be
+      // rendered and attached instead.
       const withText = hasText(text);
+      const withBadges = hasBadges(badges);
 
-      if (selection.trello && !withText) {
+      if (selection.trello && !withText && !withBadges) {
         // Prune *before* setting the colour, not after. A card whose cover is
         // currently a generated attachment keeps that attachment as its cover
         // otherwise, and the colour never takes.
@@ -167,7 +262,7 @@ export default function CoverEditor({ t }) {
         await setCardCover(t, cardId, { color: selection.trello, size, brightness });
       } else {
         setStatusText("Rendering cover…");
-        const blob = await renderCover(selection, withText ? text : null);
+        const blob = await renderCover(selection, withText ? text : null, badges);
         setStatusText("Uploading cover…");
         const attachment = await uploadCoverAttachment(
           t,
@@ -245,14 +340,58 @@ export default function CoverEditor({ t }) {
       <div className="ce-split">
         <aside className="ce-aside">
           <div className={`ce-card ${isFull ? "ce-card--full" : ""}`}>
+            {/* The preview is the drop target: you aim at the thing you're
+                changing, not at a separate canvas that stands in for it. */}
             <div
-              className={`ce-card__cover ${coverBackground ? "" : "ce-card__cover--empty"}`}
+              ref={coverRef}
+              className={[
+                "ce-card__cover",
+                coverBackground ? "" : "ce-card__cover--empty",
+                badgeTarget ? "ce-card__cover--target" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               style={coverBackground ? { background: coverBackground } : undefined}
+              // Which item is in the air is tracked in a ref rather than read
+              // from dataTransfer: `getData` is blocked during dragover, and
+              // custom MIME types aren't carried consistently across browsers.
+              onDragOver={(e) => {
+                if (!draggingItem.current) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+                setBadgeTarget(true);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget)) setBadgeTarget(false);
+              }}
+              onDrop={(e) => {
+                const item = draggingItem.current;
+                if (!item) return;
+                e.preventDefault();
+                setBadgeTarget(false);
+                const point = pointToPercent(e.clientX, e.clientY);
+                if (point) addBadge(item, point.x, point.y);
+              }}
             >
               {isFull && (
                 <span className="ce-card__title">{cardName || "Card title"}</span>
               )}
               {hasText(text) && <PreviewText text={text} width={218} />}
+
+              {/* Thirds, shown only while something is in the air — enough to
+                  line badges up against, gone the moment you've dropped. */}
+              <span className="ce-card__guides" aria-hidden="true" />
+
+              {badges.map((badge) => (
+                <PreviewBadge
+                  key={badge.id}
+                  badge={badge}
+                  width={218}
+                  onMove={moveBadge}
+                  onRemove={removeBadge}
+                  toPercent={pointToPercent}
+                />
+              ))}
             </div>
             {!isFull && (
               <div className="ce-card__pad">
@@ -274,7 +413,7 @@ export default function CoverEditor({ t }) {
             <span className="ce-caption__meta">
               {isFull ? "full bleed" : "standard"}
               {selection
-                ? selection.trello && !hasText(text)
+                ? selection.trello && !hasText(text) && !hasBadges(badges)
                   ? " · instant"
                   : " · attached"
                 : ""}
@@ -419,6 +558,66 @@ export default function CoverEditor({ t }) {
             </div>
           )}
 
+          {tab === "items" && (
+            <div role="tabpanel" id="ce-panel-items" aria-labelledby="ce-tab-items"
+                 style={{ display: "grid", gap: 18 }}>
+              <p className="ce-note">
+                <TagIcon className="ce-note__icon" width={15} height={15} />
+                <span>
+                  <b>Drop items onto the cover.</b> Labels, people and the due
+                  date are drawn into the cover image, so a card carrying one
+                  becomes an attached cover rather than a plain colour — and the
+                  badge keeps the wording it had when you applied it.
+                </span>
+              </p>
+
+              {trayItems.length === 0 ? (
+                <p className="ce-empty">
+                  This card has no labels, members or due date yet. Add some on
+                  the card and they'll show up here.
+                </p>
+              ) : (
+                <>
+                  <Tray
+                    title="Labels"
+                    items={items.labels}
+                    placedIds={placedIds}
+                    onToggle={toggleBadge}
+                    onDragItem={(item) => (draggingItem.current = item)}
+                    disabled={busy}
+                    full={badges.length >= MAX_BADGES}
+                  />
+                  <Tray
+                    title="People"
+                    note="initials, not photos"
+                    items={items.members}
+                    placedIds={placedIds}
+                    onToggle={toggleBadge}
+                    onDragItem={(item) => (draggingItem.current = item)}
+                    disabled={busy}
+                    full={badges.length >= MAX_BADGES}
+                  />
+                  <Tray
+                    title="Due date"
+                    items={items.due ? [items.due] : []}
+                    placedIds={placedIds}
+                    onToggle={toggleBadge}
+                    onDragItem={(item) => (draggingItem.current = item)}
+                    disabled={busy}
+                    full={badges.length >= MAX_BADGES}
+                  />
+
+                  <p className="ce-picker__note">
+                    Drag onto the preview, or click to place. Drag a badge to
+                    move it, click it to take it off.
+                    {badges.length >= MAX_BADGES &&
+                      ` ${MAX_BADGES} is the limit — remove one to add another.`}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
           {tab === "text" && (
             <div role="tabpanel" id="ce-panel-text" aria-labelledby="ce-tab-text"
                  style={{ display: "grid", gap: 18 }}>
@@ -534,13 +733,7 @@ export default function CoverEditor({ t }) {
           role="status"
           aria-live="polite"
         >
-          {error || statusText || (selection
-            ? selection.trello && !hasText(text)
-              ? `${selection.label} · applies instantly`
-              : hasText(text)
-                ? `${selection.label} + text · uploads an image`
-                : `${selection.label} · uploads an image`
-            : "Pick a cover")}
+          {error || statusText || describeOutcome(selection, text, badges)}
         </span>
         <button
           type="button"
@@ -593,6 +786,147 @@ function Swatches({ title, note, colors, selection, onSelect, disabled }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// Says what pressing Apply will actually do. The distinction matters: a
+// Trello colour on its own is instant and leaves no attachment, while text or
+// a single badge turns the same colour into an uploaded image.
+function describeOutcome(selection, text, badges) {
+  if (!selection) return "Pick a cover";
+
+  const extras = [];
+  if (hasText(text)) extras.push("text");
+  if (hasBadges(badges)) {
+    extras.push(`${badges.length} ${badges.length === 1 ? "item" : "items"}`);
+  }
+
+  if (selection.trello && extras.length === 0) {
+    return `${selection.label} · applies instantly`;
+  }
+  return extras.length
+    ? `${selection.label} + ${extras.join(" + ")} · uploads an image`
+    : `${selection.label} · uploads an image`;
+}
+
+// One group of the tray. Pills hug their own text and wrap, so six labels
+// take two lines instead of six.
+function Tray({ title, note, items, placedIds, onToggle, onDragItem, disabled, full }) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className="ce-sec">
+      <div className="ce-sec__head">
+        <span className="ce-lbl">{title}</span>
+        <span className="ce-sec__rule" />
+        {note && <span className="ce-lbl">{note}</span>}
+      </div>
+      <div className="ce-pills">
+        {items.map((item) => {
+          const placed = placedIds.has(item.id);
+          return (
+            <button
+              key={item.id}
+              type="button"
+              aria-pressed={placed}
+              // A full cover shouldn't grey out what's already on it — you
+              // still need to click those to take them off.
+              disabled={disabled || (full && !placed)}
+              draggable={!disabled}
+              onDragStart={(e) => {
+                onDragItem(item);
+                // Firefox refuses to start a drag unless something is set.
+                e.dataTransfer.setData("text/plain", item.id);
+                e.dataTransfer.effectAllowed = "copy";
+              }}
+              onDragEnd={() => onDragItem(null)}
+              onClick={() => onToggle(item)}
+              className={`ce-pill ce-pill--${item.kind}`}
+              style={{
+                "--ce-tint": item.color,
+                "--ce-tint-ink": item.ink,
+              }}
+              title={placed ? "On the cover — click to remove" : "Drag onto the cover, or click"}
+            >
+              <span className="ce-pill__dot">
+                {item.kind === "member" && item.text}
+                {item.kind === "due" && <ClockIcon width={13} height={13} />}
+              </span>
+              <span>{item.kind === "member" ? item.name : item.text}</span>
+              <CheckIcon className="ce-pill__check" width={12} height={12} />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// A badge on the miniature. Sizes come from the same BADGE table the canvas
+// renderer uses, scaled to the preview, so what you place is what you get.
+function PreviewBadge({ badge, width, onMove, onRemove, toPercent }) {
+  const scale = previewFontScale(width);
+  const moved = useRef(false);
+
+  const isMember = badge.kind === "member";
+  const size = {
+    fontSize: BADGE.font * scale,
+    left: `${badge.x}%`,
+    top: `${badge.y}%`,
+    background: badge.color,
+    color: badge.ink,
+  };
+
+  return (
+    <span
+      className={`ce-badge ce-badge--${badge.kind}`}
+      style={
+        isMember
+          ? {
+              ...size,
+              fontSize: BADGE.avatarFont * scale,
+              width: BADGE.avatar * scale,
+              height: BADGE.avatar * scale,
+            }
+          : {
+              ...size,
+              height: BADGE.height * scale,
+              padding: `0 ${BADGE.padX * scale}px`,
+              gap: BADGE.gap * scale,
+            }
+      }
+      role="button"
+      tabIndex={0}
+      title="Drag to move · click to remove"
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        moved.current = false;
+      }}
+      onPointerMove={(e) => {
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        const point = toPercent(e.clientX, e.clientY);
+        if (!point) return;
+        // A click that drifts a pixel is still a click; only a real drag
+        // should suppress the remove.
+        if (Math.abs(point.x - badge.x) > 0.6 || Math.abs(point.y - badge.y) > 0.6) {
+          moved.current = true;
+        }
+        onMove(badge.id, point.x, point.y);
+      }}
+      onPointerUp={() => {
+        if (!moved.current) onRemove(badge.id);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onRemove(badge.id);
+        }
+      }}
+    >
+      {badge.kind === "due" && <ClockIcon width={BADGE.icon * scale} height={BADGE.icon * scale} />}
+      <span>{badge.kind === "label" ? badge.text.toUpperCase() : badge.text}</span>
+    </span>
   );
 }
 

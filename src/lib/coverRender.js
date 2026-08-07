@@ -20,12 +20,28 @@ const SCALE = WIDTH / REFERENCE_WIDTH;
 const FONT_STACK =
   '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif';
 
+// Badge geometry, in the same 500px-wide reference units the text slider
+// uses. One source for both the miniature preview and the rendered PNG, so
+// a badge can't look one size in the editor and another on the card.
+export const BADGE = {
+  font: 15,
+  height: 27,
+  padX: 10,
+  radius: 13.5,
+  avatar: 40,
+  avatarFont: 15,
+  icon: 15,
+  gap: 6,
+};
+
 /**
  * @param selection `{ kind: "solid", hex }` or `{ kind: "gradient", angle, stops }`
  * @param text optional `{ heading, subheading, size, color, align }`
+ * @param badges optional array of `{ kind, x, y, color, ink, text }`, where
+ *   `kind` is "label" | "member" | "due" and x/y are percentages of the cover
  * @returns {Promise<Blob>} PNG blob
  */
-export function renderCover(selection, text) {
+export function renderCover(selection, text, badges) {
   const canvas = document.createElement("canvas");
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
@@ -39,6 +55,7 @@ export function renderCover(selection, text) {
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
   if (hasText(text)) drawText(ctx, text);
+  if (hasBadges(badges)) drawBadges(ctx, badges);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -50,6 +67,10 @@ export function renderCover(selection, text) {
 
 export function hasText(text) {
   return Boolean(text && (text.heading?.trim() || text.subheading?.trim()));
+}
+
+export function hasBadges(badges) {
+  return Array.isArray(badges) && badges.length > 0;
 }
 
 // Converts a CSS gradient angle into the two endpoints canvas wants.
@@ -120,6 +141,124 @@ function drawText(ctx, { heading, subheading, size, color, align }) {
     y += item.height;
   }
 
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+}
+
+// Labels, members and the due date, painted where they were dropped.
+//
+// Positions arrive as percentages rather than pixels because the editor's
+// preview is 218px wide and this canvas is 1000px — a percentage is the only
+// coordinate that means the same thing in both.
+function drawBadges(ctx, badges) {
+  ctx.save();
+  ctx.textBaseline = "middle";
+
+  for (const badge of badges) {
+    const cx = (badge.x / 100) * WIDTH;
+    const cy = (badge.y / 100) * HEIGHT;
+
+    // Badges sit on arbitrary colours, so each carries its own drop shadow
+    // rather than trusting the cover beneath it to provide separation.
+    ctx.shadowColor = "rgba(0,0,0,0.38)";
+    ctx.shadowBlur = 7 * SCALE;
+    ctx.shadowOffsetY = 1.5 * SCALE;
+
+    if (badge.kind === "member") {
+      drawMember(ctx, badge, cx, cy);
+    } else {
+      drawPill(ctx, badge, cx, cy);
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawMember(ctx, badge, cx, cy) {
+  const radius = (BADGE.avatar * SCALE) / 2;
+
+  ctx.fillStyle = badge.color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  clearShadow(ctx);
+
+  ctx.fillStyle = badge.ink;
+  ctx.font = `800 ${BADGE.avatarFont * SCALE}px ${FONT_STACK}`;
+  ctx.textAlign = "center";
+  ctx.fillText(badge.text, cx, cy);
+}
+
+function drawPill(ctx, badge, cx, cy) {
+  const height = BADGE.height * SCALE;
+  const padX = BADGE.padX * SCALE;
+  const iconSize = BADGE.icon * SCALE;
+  const iconWidth = badge.kind === "due" ? iconSize + BADGE.gap * SCALE : 0;
+
+  // Labels are set in caps on the cover the way Trello sets its own, which
+  // also keeps short names from looking like stray words.
+  const text = badge.kind === "label" ? badge.text.toUpperCase() : badge.text;
+
+  ctx.font = `800 ${BADGE.font * SCALE}px ${FONT_STACK}`;
+  const width = ctx.measureText(text).width + padX * 2 + iconWidth;
+
+  ctx.fillStyle = badge.color;
+  roundRect(ctx, cx - width / 2, cy - height / 2, width, height, height / 2);
+  ctx.fill();
+
+  clearShadow(ctx);
+
+  ctx.fillStyle = badge.ink;
+  ctx.textAlign = "left";
+
+  let x = cx - width / 2 + padX;
+  if (badge.kind === "due") {
+    drawClock(ctx, x + iconSize / 2, cy, iconSize / 2, badge.ink);
+    x += iconWidth;
+  }
+
+  ctx.font = `800 ${BADGE.font * SCALE}px ${FONT_STACK}`;
+  ctx.fillText(text, x, cy);
+}
+
+function drawClock(ctx, cx, cy, radius, ink) {
+  ctx.save();
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = Math.max(1, radius * 0.24);
+  ctx.lineCap = "round";
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius * 0.82, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - radius * 0.44);
+  ctx.lineTo(cx, cy);
+  ctx.lineTo(cx + radius * 0.36, cy + radius * 0.2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// `roundRect` is only in newer browsers, and a Power-Up runs in whatever the
+// member happens to have. The fallback draws the same shape by hand.
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(x, y, width, height, radius);
+    return;
+  }
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+function clearShadow(ctx) {
   ctx.shadowColor = "transparent";
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;

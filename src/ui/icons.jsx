@@ -90,6 +90,24 @@ export function LayersIcon(props) {
   );
 }
 
+export function TagIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M2.4 7.3V3.4a1 1 0 0 1 1-1h3.9c.27 0 .52.1.71.29l5.3 5.3a1 1 0 0 1 0 1.42l-3.9 3.9a1 1 0 0 1-1.42 0l-5.3-5.3a1 1 0 0 1-.29-.71Z" />
+      <circle cx="5.4" cy="5.4" r=".95" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function ClockIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="8" cy="8" r="6.2" />
+      <path d="M8 4.6V8l2.4 1.6" />
+    </svg>
+  );
+}
+
 export function SpinnerIcon(props) {
   return (
     <svg {...base} className="cc-spin" {...props}>
