@@ -53,7 +53,9 @@ async function apiFetch(t, path, { method = "GET", params = {} } = {}) {
 // deliberately *not* by `authorization-status`, which Trello calls often
 // enough that a network round trip per call would be wasteful.
 export function getCurrentMember(t) {
-  return apiFetch(t, "/members/me", { params: { fields: "id,username,fullName" } });
+  return apiFetch(t, "/members/me", {
+    params: { fields: "id,username,fullName,avatarUrl,initials" },
+  });
 }
 
 export function getCard(t, cardId) {
