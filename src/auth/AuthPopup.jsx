@@ -5,7 +5,7 @@ import {
   buildAuthorizeUrl,
   saveToken,
 } from "../lib/auth.js";
-import { styles } from "../lib/ui.js";
+import { styles, successStyles } from "../lib/ui.js";
 
 export default function AuthPopup({ t }) {
   const [status, setStatus] = useState("idle"); // idle | waiting | success | error
@@ -26,10 +26,12 @@ export default function AuthPopup({ t }) {
 
       try {
         await saveToken(t, event.data.token);
+        // Trello re-runs `authorization-status` on its own once the token
+        // lands, so the board picks up the new state without our help. We
+        // just show a clean confirmation and let the member decide when
+        // they're done reading it, rather than yanking them into another
+        // popup mid-sentence.
         setStatus("success");
-        // Let Trello re-run `authorization-status` so the board picks up the
-        // new token, then hand the member back to where they came from.
-        setTimeout(redirectAfterConnect, 600);
       } catch {
         setStatus("error");
       }
@@ -39,24 +41,6 @@ export default function AuthPopup({ t }) {
     return () => window.removeEventListener("message", handleMessage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function redirectAfterConnect() {
-    // `redirect` is set by whichever popup bounced the member here, so a
-    // member who clicked "Cover" lands back on the cover picker rather than
-    // on a closed popup with no idea what happened.
-    switch (t.arg("redirect")) {
-      case "cover":
-        return t.popup({ title: "Card Cover", url: "./cover.html", height: 320 });
-      case "settings":
-        return t.popup({
-          title: "Card Cover Settings",
-          url: "./settings.html",
-          height: 300,
-        });
-      default:
-        return t.closePopup();
-    }
-  }
 
   function handleAuthorize() {
     setStatus("waiting");
@@ -71,10 +55,30 @@ export default function AuthPopup({ t }) {
     if (!popupRef.current) setStatus("error");
   }
 
+  if (status === "success") {
+    return (
+      <div style={successStyles.wrapper}>
+        <div style={successStyles.iconCircle}>
+          <CheckIcon />
+        </div>
+        <p style={successStyles.title}>You're connected</p>
+        <p style={successStyles.body}>
+          {APP_NAME} can now read and update covers on this board.
+        </p>
+        <button
+          type="button"
+          onClick={() => t.closePopup()}
+          style={successStyles.button}
+        >
+          Continue
+        </button>
+      </div>
+    );
+  }
+
   const copy = {
     idle: `Connect your Trello account so ${APP_NAME} can read and update card covers on this board.`,
     waiting: "Waiting for you to approve access in the popup window…",
-    success: "Connected. Closing…",
     error: "Couldn't connect. Check that popups are allowed, then try again.",
   };
 
@@ -84,13 +88,13 @@ export default function AuthPopup({ t }) {
       <button
         type="button"
         onClick={handleAuthorize}
-        disabled={status === "waiting" || status === "success"}
+        disabled={status === "waiting"}
         style={{
           ...styles.button,
           ...(status === "waiting" ? styles.buttonBusy : {}),
         }}
       >
-        {status === "success" ? "Connected ✓" : "Connect Trello Account"}
+        Connect Trello Account
       </button>
       {status === "error" && (
         <button type="button" onClick={handleAuthorize} style={styles.subtleButton}>
@@ -98,5 +102,19 @@ export default function AuthPopup({ t }) {
         </button>
       )}
     </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M5 12.5L9.5 17L19 7"
+        stroke="#4BCE97"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

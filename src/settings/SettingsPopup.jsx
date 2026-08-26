@@ -24,12 +24,11 @@ export default function SettingsPopup({ t }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function requireAuth() {
+    function requireAuth() {
     return t.popup({
       title: "Authorize Card Cover",
       url: "./auth.html",
       height: 220,
-      args: { redirect: "settings" },
     });
   }
 
