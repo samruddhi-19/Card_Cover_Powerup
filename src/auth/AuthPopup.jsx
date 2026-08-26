@@ -6,6 +6,7 @@ import {
   saveToken,
 } from "../lib/auth.js";
 import { styles, successStyles } from "../lib/ui.js";
+import CheckIcon from "../ui/CheckIcon.jsx";
 
 export default function AuthPopup({ t }) {
   const [status, setStatus] = useState("idle"); // idle | waiting | success | error
@@ -57,7 +58,7 @@ export default function AuthPopup({ t }) {
 
   if (status === "success") {
     return (
-      <div style={successStyles.wrapper}>
+      <div style={{ ...successStyles.wrapper, ...successStyles.centered }}>
         <div style={successStyles.iconCircle}>
           <CheckIcon />
         </div>
@@ -102,19 +103,5 @@ export default function AuthPopup({ t }) {
         </button>
       )}
     </div>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M5 12.5L9.5 17L19 7"
-        stroke="#4BCE97"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

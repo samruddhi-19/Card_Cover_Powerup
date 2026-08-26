@@ -24,7 +24,7 @@ TrelloPowerUp.initialize({
     return t.popup({
       title: "Card Cover Settings",
       url: "./settings.html",
-      height: 300,
+      height: 220,
     });
   },
 
@@ -37,7 +37,7 @@ TrelloPowerUp.initialize({
           return t.popup({
             title: "Card Cover Settings",
             url: "./settings.html",
-            height: 300,
+            height: 220,
           });
         },
       },

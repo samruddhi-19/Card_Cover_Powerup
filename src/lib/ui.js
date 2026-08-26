@@ -42,21 +42,24 @@ export const styles = {
   error: { fontSize: 12.5, color: "#C9372C", marginTop: 10 },
 };
 
-// A dedicated dark confirmation screen shown once authorization succeeds —
-// a clean "you're connected" moment rather than dumping the member straight
-// into a settings form. Matches the modal's own accentColor (#1D2125) so it
-// reads as a deliberate screen rather than the light popup flashing dark.
+// A dedicated dark theme shown once authorization succeeds and reused by
+// Settings — a clean, unified look rather than the light popup flashing
+// dark. Matches the modal's own accentColor (#1D2125) so it reads as a
+// deliberate screen rather than a mismatch against Trello's dark chrome.
 export const successStyles = {
   wrapper: {
     fontFamily: "-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif",
     background: "#1D2125",
-    minHeight: "100vh",
+    minHeight: "100%",
     boxSizing: "border-box",
-    padding: "28px 20px 24px",
+    padding: "20px",
     display: "flex",
     flexDirection: "column",
+  },
+  centered: {
     alignItems: "center",
     textAlign: "center",
+    padding: "28px 20px 24px",
   },
   iconCircle: {
     width: 48,
@@ -80,5 +83,35 @@ export const successStyles = {
     fontSize: 13.5,
     fontWeight: 600,
     cursor: "pointer",
+  },
+  label: {
+    display: "block",
+    fontSize: 12,
+    fontWeight: 600,
+    color: "#9FADBC",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 6,
+  },
+  select: {
+    width: "100%",
+    padding: "7px 8px",
+    borderRadius: 4,
+    border: "1px solid #454F59",
+    background: "#22272B",
+    color: "#F7F8F9",
+    fontSize: 13.5,
+    boxSizing: "border-box",
+  },
+  hint: { fontSize: 12.5, color: "#8C9BAB", lineHeight: 1.5, margin: 0 },
+  link: {
+    marginTop: 10,
+    background: "none",
+    border: "none",
+    color: "#85B8FF",
+    fontSize: 12,
+    textDecoration: "underline",
+    cursor: "pointer",
+    padding: 0,
   },
 };
