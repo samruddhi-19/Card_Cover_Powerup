@@ -43,6 +43,14 @@ export default function AuthPopup({ t }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The popup's initial height is just a starting guess (set where it's
+  // opened); this keeps it snug to whatever's actually on screen as the
+  // screen changes from "Connect" to "Waiting…" to the success card, so we
+  // never end up with a stray scrollbar from a mismatched estimate.
+  useEffect(() => {
+    t.sizeTo("#root").catch(() => {});
+  }, [t, status]);
+
   function handleAuthorize() {
     setStatus("waiting");
     const returnUrl = `${window.location.origin}/authorized.html`;
