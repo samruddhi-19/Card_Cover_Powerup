@@ -995,7 +995,15 @@ function CustomPicker({ value, onChange, onPick, selection, disabled }) {
             spellCheck="false"
             aria-label="Hex colour"
             aria-invalid={bad}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setDraft(val);
+              const match = HEX_RE.exec(val.trim());
+              if (match) {
+                setBad(false);
+                apply(`#${match[1].toUpperCase()}`);
+              }
+            }}
             onBlur={(e) => commit(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") commit(e.currentTarget.value);
