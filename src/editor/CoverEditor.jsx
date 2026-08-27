@@ -274,37 +274,26 @@ export default function CoverEditor({ t }) {
     setBusy(true);
     setError("");
     try {
-      // Trello colours apply instantly. Everything else has to be rasterised
-      // and attached, because the cover API can't express a custom hex or a
-      // gradient at all.
-      // A Trello colour cover can't carry text — the API has no field for it,
-      // and none for badges either. So the moment there's a heading, a
-      // subheading or a single dropped item, even a native colour has to be
-      // rendered and attached instead.
       const withText = hasText(text);
       const withBadges = hasBadges(badges);
 
       if (selection.trello && !withText && !withBadges) {
-        // Prune *before* setting the colour, not after. A card whose cover is
-        // currently a generated attachment keeps that attachment as its cover
-        // otherwise, and the colour never takes.
         setStatusText("Applying cover…");
-        await pruneGeneratedCovers(t, cardId, null);
         await setCardCover(t, cardId, { color: selection.trello, size, brightness });
+        pruneGeneratedCovers(t, cardId, null).catch(() => {});
       } else {
-        setStatusText("Rendering cover…");
+        setStatusText("Applying cover…");
         const blob = await renderCover(selection, withText ? text : null, badges);
-        setStatusText("Uploading cover…");
         const attachment = await uploadCoverAttachment(
           t,
           cardId,
           blob,
           coverFileName(selection)
         );
-        setStatusText("Tidying up…");
-        await pruneGeneratedCovers(t, cardId, attachment.id);
+        // Prune old covers in the background without blocking modal close
+        pruneGeneratedCovers(t, cardId, attachment.id).catch(() => {});
       }
-      await saveSettings(t, { dynamicSync, coverSize: size });
+      saveSettings(t, { dynamicSync, coverSize: size }).catch(() => {});
       t.closeModal();
     } catch (e) {
       handleFailure(e, "Couldn't apply the cover.");
