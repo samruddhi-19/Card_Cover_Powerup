@@ -220,7 +220,9 @@ export default function CoverEditor({ t }) {
   const coverBackground = selection
     ? selection.kind === "gradient"
       ? gradientCss(selection)
-      : selection.hex
+      : selection.kind === "image"
+        ? `url("${selection.dataUrl || selection.url}") center / cover no-repeat`
+        : selection.hex
     : null;
 
   async function handleApply() {
@@ -287,28 +289,27 @@ export default function CoverEditor({ t }) {
     }
   }
 
-  async function handleImageFile(file) {
+  function handleImageFile(file) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setError("That file isn't an image.");
       return;
     }
-    if (!cardId) {
-      setError("No card to apply this to. Close and reopen the editor.");
-      return;
-    }
-    setBusy(true);
     setError("");
-    try {
-      setStatusText("Uploading image…");
-      await uploadCoverAttachment(t, cardId, file, file.name);
-      t.closeModal();
-    } catch (e) {
-      handleFailure(e, "Couldn't upload that image.");
-    } finally {
-      setBusy(false);
-      setStatusText("");
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelection({
+        kind: "image",
+        id: `img-${Date.now()}`,
+        label: file.name,
+        file,
+        dataUrl: reader.result,
+      });
+    };
+    reader.onerror = () => {
+      setError("Couldn't load that image.");
+    };
+    reader.readAsDataURL(file);
   }
 
   function handleFailure(e, fallback) {
@@ -523,10 +524,13 @@ export default function CoverEditor({ t }) {
                 }}
               >
                 <ImageIcon width={26} height={26} />
-                <span className="ce-drop__title">Drop an image here</span>
+                <span className="ce-drop__title">
+                  {selection?.kind === "image" ? "Change image" : "Drop an image here"}
+                </span>
                 <span className="ce-drop__hint">
-                  PNG or JPG. It's attached to the card and set as the cover
-                  straight away — no need to press Apply.
+                  {selection?.kind === "image"
+                    ? `Selected: ${selection.label}. Preview it on the left, add text or items in the Text tab, and click Apply cover when ready.`
+                    : "PNG, JPG or WebP. Preview it on the left, add text or items in the Text tab, and click Apply cover."}
                 </span>
                 <button
                   type="button"
@@ -534,14 +538,17 @@ export default function CoverEditor({ t }) {
                   onClick={() => fileRef.current?.click()}
                   disabled={busy}
                 >
-                  Choose file
+                  {selection?.kind === "image" ? "Choose another file" : "Choose file"}
                 </button>
                 <input
                   ref={fileRef}
                   type="file"
                   accept="image/*"
                   hidden
-                  onChange={(e) => handleImageFile(e.target.files?.[0])}
+                  onChange={(e) => {
+                    handleImageFile(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
                 />
               </div>
             </div>

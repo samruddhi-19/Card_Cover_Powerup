@@ -35,13 +35,13 @@ export const BADGE = {
 };
 
 /**
- * @param selection `{ kind: "solid", hex }` or `{ kind: "gradient", angle, stops }`
+ * @param selection `{ kind: "solid", hex }` | `{ kind: "gradient", angle, stops }` | `{ kind: "image", dataUrl, url }`
  * @param text optional `{ heading, subheading, size, color, align }`
  * @param badges optional array of `{ kind, x, y, color, ink, text }`, where
  *   `kind` is "label" | "member" | "due" and x/y are percentages of the cover
  * @returns {Promise<Blob>} PNG blob
  */
-export function renderCover(selection, text, badges) {
+export async function renderCover(selection, text, badges) {
   const canvas = document.createElement("canvas");
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
@@ -49,10 +49,17 @@ export function renderCover(selection, text, badges) {
 
   if (selection.kind === "gradient") {
     ctx.fillStyle = buildGradient(ctx, selection);
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  } else if (selection.kind === "image") {
+    const src = selection.dataUrl || selection.url;
+    if (src) {
+      const img = await loadImage(src);
+      drawImageCover(ctx, img, 0, 0, WIDTH, HEIGHT);
+    }
   } else {
     ctx.fillStyle = selection.hex;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
   }
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
   if (hasText(text)) drawText(ctx, text);
   if (hasBadges(badges)) drawBadges(ctx, badges);
@@ -286,13 +293,45 @@ function wrap(ctx, text, maxWidth) {
   return lines.slice(0, 4);
 }
 
+function drawImageCover(ctx, img, x, y, w, h) {
+  const imgRatio = img.width / img.height;
+  const targetRatio = w / h;
+  let sWidth = img.width;
+  let sHeight = img.height;
+  let sx = 0;
+  let sy = 0;
+
+  if (imgRatio > targetRatio) {
+    sWidth = img.height * targetRatio;
+    sx = (img.width - sWidth) / 2;
+  } else {
+    sHeight = img.width / targetRatio;
+    sy = (img.height - sHeight) / 2;
+  }
+
+  ctx.drawImage(img, sx, sy, sWidth, sHeight, x, y, w, h);
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Failed to load image for cover rendering"));
+    img.src = src;
+  });
+}
+
 /** CSS background for previews — mirrors what renderCover will produce. */
 export function previewBackground(selection) {
   if (!selection) return null;
-  return selection.kind === "gradient" ? gradientCss(selection) : selection.hex;
+  if (selection.kind === "gradient") return gradientCss(selection);
+  if (selection.kind === "image") return `url("${selection.dataUrl || selection.url}") center / cover no-repeat`;
+  return selection.hex;
 }
 
 /** Scales a slider px value for a preview of a given width. */
 export function previewFontScale(previewWidth) {
   return previewWidth / REFERENCE_WIDTH;
 }
+
