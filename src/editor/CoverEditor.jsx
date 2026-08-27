@@ -28,7 +28,6 @@ import {
   LayersIcon,
   TextIcon,
   ImageIcon,
-  TagIcon,
   ClockIcon,
   CheckIcon,
   SpinnerIcon,
@@ -41,9 +40,6 @@ const TABS = [
   { id: "gradient", label: "Gradient", Icon: LayersIcon },
   { id: "image", label: "Image", Icon: ImageIcon },
   { id: "text", label: "Text", Icon: TextIcon },
-  // "Items" rather than "Card items": five tabs already fill the row at the
-  // width Trello gives the modal, and a longer label wraps it.
-  { id: "items", label: "Items", Icon: TagIcon },
 ];
 
 // Where a click — rather than a drag — puts the next badge. Walked in order,
@@ -66,13 +62,6 @@ const clampY = (y) => clamp(y, 10, 90);
 const SIZE_OPTIONS = [
   { value: "normal", label: "Standard" },
   { value: "full", label: "Full bleed" },
-];
-
-// Trello's `brightness` describes the *cover*, so brightness "dark" means
-// light text sits on it. Labelled by what you'll see, not what the API calls it.
-const TEXT_OPTIONS = [
-  { value: "dark", label: "Light text" },
-  { value: "light", label: "Dark text" },
 ];
 
 // Ink for text we render onto the cover ourselves — unrelated to Trello's
@@ -558,18 +547,43 @@ export default function CoverEditor({ t }) {
             </div>
           )}
 
-          {tab === "items" && (
-            <div role="tabpanel" id="ce-panel-items" aria-labelledby="ce-tab-items"
+          {tab === "text" && (
+            <div role="tabpanel" id="ce-panel-text" aria-labelledby="ce-tab-text"
                  style={{ display: "grid", gap: 18 }}>
               <p className="ce-note">
-                <TagIcon className="ce-note__icon" width={15} height={15} />
+                <TextIcon className="ce-note__icon" width={15} height={15} />
                 <span>
-                  <b>Drop items onto the cover.</b> Labels, people and the due
-                  date are drawn into the cover image, so a card carrying one
-                  becomes an attached cover rather than a plain colour — and the
-                  badge keeps the wording it had when you applied it.
+                  <b>Write cover text.</b> Headings, notes or sprint labels are
+                  drawn straight onto the cover image — so any card with text
+                  becomes an attached cover, not a plain colour.
                 </span>
               </p>
+
+              <label className="ce-field">
+                <span className="ce-lbl">Cover heading</span>
+                <input
+                  type="text"
+                  className="ce-input"
+                  value={text.heading}
+                  disabled={busy}
+                  maxLength={60}
+                  placeholder="Sprint 24 · Design"
+                  onChange={(e) => patchText({ heading: e.target.value })}
+                />
+              </label>
+
+              <label className="ce-field">
+                <span className="ce-lbl">Subheading</span>
+                <input
+                  type="text"
+                  className="ce-input"
+                  value={text.subheading}
+                  disabled={busy}
+                  maxLength={90}
+                  placeholder="Ships Friday"
+                  onChange={(e) => patchText({ subheading: e.target.value })}
+                />
+              </label>
 
               {trayItems.length === 0 ? (
                 <p className="ce-empty">
@@ -615,46 +629,6 @@ export default function CoverEditor({ t }) {
                   </p>
                 </>
               )}
-            </div>
-          )}
-
-          {tab === "text" && (
-            <div role="tabpanel" id="ce-panel-text" aria-labelledby="ce-tab-text"
-                 style={{ display: "grid", gap: 18 }}>
-              <p className="ce-note">
-                <TextIcon className="ce-note__icon" width={15} height={15} />
-                <span>
-                  <b>Write cover text.</b> Headings, notes or sprint labels are
-                  drawn straight onto the cover image — so any card with text
-                  becomes an attached cover, not a plain colour.
-                </span>
-              </p>
-
-              <label className="ce-field">
-                <span className="ce-lbl">Cover heading</span>
-                <input
-                  type="text"
-                  className="ce-input"
-                  value={text.heading}
-                  disabled={busy}
-                  maxLength={60}
-                  placeholder="Sprint 24 · Design"
-                  onChange={(e) => patchText({ heading: e.target.value })}
-                />
-              </label>
-
-              <label className="ce-field">
-                <span className="ce-lbl">Subheading</span>
-                <input
-                  type="text"
-                  className="ce-input"
-                  value={text.subheading}
-                  disabled={busy}
-                  maxLength={90}
-                  placeholder="Ships Friday"
-                  onChange={(e) => patchText({ subheading: e.target.value })}
-                />
-              </label>
 
               <div className="ce-duo">
                 <div className="ce-field">
@@ -695,21 +669,6 @@ export default function CoverEditor({ t }) {
                   disabled={busy}
                   label="Text alignment"
                 />
-              </div>
-
-              <div className="ce-field">
-                <span className="ce-lbl">Card title contrast</span>
-                <Segmented
-                  options={TEXT_OPTIONS}
-                  value={brightness}
-                  onChange={setBrightness}
-                  disabled={busy}
-                  label="Card title contrast"
-                />
-                <span className="ce-picker__note">
-                  Trello's own setting for the card title. Only applies to plain
-                  colour covers.
-                </span>
               </div>
             </div>
           )}
