@@ -106,29 +106,26 @@ export default function CoverStudio({ t }) {
           </p>
         </div>
 
-        {/* Both actions stay on screen; emphasis shifts with state, and the
-            inapplicable one greys out with a title explaining why. */}
         <div className="cc-panel__actions">
-          <button
-            type="button"
-            className={`cc-btn ${cover ? "cc-btn--secondary" : "cc-btn--primary"}`}
-            onClick={openEditor}
-            disabled={Boolean(cover)}
-            title={cover ? "This card already has a cover — use Edit Card Cover" : undefined}
-          >
-            <PlusIcon />
-            Add Card Cover
-          </button>
-          <button
-            type="button"
-            className={`cc-btn ${cover ? "cc-btn--primary" : "cc-btn--secondary"}`}
-            onClick={openEditor}
-            disabled={!cover}
-            title={!cover ? "Add a cover first" : undefined}
-          >
-            <SwapIcon />
-            Edit Card Cover
-          </button>
+          {cover ? (
+            <button
+              type="button"
+              className="cc-btn cc-btn--primary"
+              onClick={openEditor}
+            >
+              <SwapIcon />
+              Edit Card Cover
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="cc-btn cc-btn--primary"
+              onClick={openEditor}
+            >
+              <PlusIcon />
+              Add Card Cover
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -140,19 +137,22 @@ export default function CoverStudio({ t }) {
 // "no cover".
 function normalizeCover(raw) {
   if (!raw) return null;
-  if (raw.idAttachment || raw.idUploadedBackground) {
+  if (raw.idAttachment || raw.idUploadedBackground || raw.url || raw.scaled?.length) {
     return {
       image: raw.scaled?.at(-1)?.url ?? raw.url ?? null,
       size: raw.size ?? "normal",
-      brightness: raw.brightness,
+      brightness: raw.brightness ?? "dark",
+      color: raw.color ?? null,
     };
   }
-  if (!raw.color) return null;
-  return {
-    color: raw.color,
-    size: raw.size ?? "normal",
-    brightness: raw.brightness ?? "dark",
-  };
+  if (raw.color) {
+    return {
+      color: raw.color,
+      size: raw.size ?? "normal",
+      brightness: raw.brightness ?? "dark",
+    };
+  }
+  return null;
 }
 
 function describeTitle(cover) {
