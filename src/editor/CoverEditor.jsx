@@ -217,13 +217,18 @@ export default function CoverEditor({ t }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const coverBackground = selection
+  const coverStyle = selection
     ? selection.kind === "gradient"
-      ? gradientCss(selection)
+      ? { background: gradientCss(selection) }
       : selection.kind === "image"
-        ? `url("${selection.dataUrl || selection.url}") center / cover no-repeat`
-        : selection.hex
-    : null;
+        ? {
+            backgroundImage: `url("${selection.dataUrl || selection.url}")`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }
+        : { background: selection.hex }
+    : undefined;
 
   async function handleApply() {
     if (!selection) return;
@@ -317,12 +322,13 @@ export default function CoverEditor({ t }) {
   }
 
   const isFull = size === "full";
+  const glowHex = selection?.hex ?? selection?.stops?.[0];
 
   return (
     <div
       className="ce-root"
       // Faint wash of the colour under consideration.
-      style={{ "--ce-glow": selection ? `${selection.hex ?? selection.stops[0]}33` : "transparent" }}
+      style={{ "--ce-glow": glowHex ? `${glowHex}33` : "transparent" }}
     >
       {/* No header here on purpose: Trello renders its own "Card Cover" title
           bar with a close button above this iframe. Adding another one just
@@ -336,12 +342,12 @@ export default function CoverEditor({ t }) {
               ref={coverRef}
               className={[
                 "ce-card__cover",
-                coverBackground ? "" : "ce-card__cover--empty",
+                selection ? "" : "ce-card__cover--empty",
                 badgeTarget ? "ce-card__cover--target" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
-              style={coverBackground ? { background: coverBackground } : undefined}
+              style={coverStyle}
               // Which item is in the air is tracked in a ref rather than read
               // from dataTransfer: `getData` is blocked during dragover, and
               // custom MIME types aren't carried consistently across browsers.
