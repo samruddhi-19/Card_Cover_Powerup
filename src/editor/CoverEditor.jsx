@@ -191,17 +191,52 @@ export default function CoverEditor({ t }) {
               members: memberItems(card.members),
               due: dueItem(card.due, card.dueComplete),
             });
+            const existingHasCover = Boolean(
+              card.cover?.color ||
+              card.cover?.idAttachment ||
+              card.cover?.idUploadedBackground ||
+              card.cover?.url ||
+              card.cover?.scaled?.length
+            );
+            setHasCover(existingHasCover);
             if (!argCardId) {
               setCardId(card.id);
               setCardName(card.name ?? "");
-              setHasCover(Boolean(card.cover?.color || card.cover?.idAttachment));
             }
             setSize(card.cover?.size ?? settings.coverSize ?? "normal");
             setBrightness(card.cover?.brightness ?? "dark");
-            // Preselect the card's current colour so the preview opens
+
+            // Preselect the card's current colour or image so the preview opens
             // showing where the card stands, not a blank slate.
-            const current = TRELLO_COLORS.find((c) => c.trello === card.cover?.color);
-            if (current) setSelection({ kind: "solid", ...current });
+            const currentTrello = TRELLO_COLORS.find((c) => c.trello === card.cover?.color);
+            if (currentTrello) {
+              setSelection({ kind: "solid", ...currentTrello });
+            } else if (card.cover?.color) {
+              const currentSolid = SOLID_COLORS.find(
+                (c) => c.hex?.toLowerCase() === card.cover.color?.toLowerCase() || c.id === card.cover.color
+              );
+              if (currentSolid) {
+                setSelection({ kind: "solid", ...currentSolid });
+              } else {
+                setSelection({
+                  kind: "solid",
+                  id: `custom-${card.cover.color.replace(/^#/, "").toLowerCase()}`,
+                  label: card.cover.color.toUpperCase(),
+                  hex: card.cover.color,
+                });
+              }
+            } else if (card.cover?.scaled?.length || card.cover?.url) {
+              const imageUrl =
+                card.cover.scaled?.at(-1)?.url || card.cover.scaled?.[0]?.url || card.cover.url;
+              if (imageUrl) {
+                setSelection({
+                  kind: "image",
+                  id: card.cover.idAttachment || "existing-cover",
+                  label: "Current cover",
+                  url: imageUrl,
+                });
+              }
+            }
             return;
           }
         } catch {
