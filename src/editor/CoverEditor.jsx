@@ -16,6 +16,7 @@ import {
 } from "../lib/covers.js";
 import {
   renderCover,
+  fetchImageAsDataUrl,
   hasText,
   hasBadges,
   previewFontScale,
@@ -229,12 +230,24 @@ export default function CoverEditor({ t }) {
               const imageUrl =
                 card.cover.scaled?.at(-1)?.url || card.cover.scaled?.[0]?.url || card.cover.url;
               if (imageUrl) {
+                const coverId = card.cover.idAttachment || "existing-cover";
                 setSelection({
                   kind: "image",
-                  id: card.cover.idAttachment || "existing-cover",
+                  id: coverId,
                   label: "Current cover",
                   url: imageUrl,
                 });
+                fetchImageAsDataUrl(imageUrl, t)
+                  .then((dataUrl) => {
+                    if (dataUrl && dataUrl.startsWith("data:")) {
+                      setSelection((prev) =>
+                        prev && (prev.url === imageUrl || prev.id === coverId)
+                          ? { ...prev, dataUrl }
+                          : prev
+                      );
+                    }
+                  })
+                  .catch(() => {});
               }
             }
             return;
@@ -283,13 +296,16 @@ export default function CoverEditor({ t }) {
         pruneGeneratedCovers(t, cardId, null).catch(() => {});
       } else {
         setStatusText("Applying cover…");
-        const blob = await renderCover(selection, withText ? text : null, badges);
+        const blob = await renderCover(selection, withText ? text : null, badges, t);
         const attachment = await uploadCoverAttachment(
           t,
           cardId,
           blob,
           coverFileName(selection)
         );
+        if (size === "full" || brightness !== "dark") {
+          await setCardCover(t, cardId, { idAttachment: attachment.id, size, brightness }).catch(() => {});
+        }
         // Prune old covers in the background without blocking modal close
         pruneGeneratedCovers(t, cardId, attachment.id).catch(() => {});
       }

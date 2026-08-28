@@ -7,6 +7,7 @@
 // faster.
 
 import { gradientCss } from "./covers.js";
+import { APP_KEY, getToken } from "./auth.js";
 
 const WIDTH = 1000;
 const HEIGHT = 560;
@@ -34,14 +35,66 @@ export const BADGE = {
   gap: 6,
 };
 
+export async function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Failed to convert blob to data URL"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+export async function fetchImageAsDataUrl(url, t) {
+  if (!url) return null;
+  if (url.startsWith("data:") || url.startsWith("blob:")) return url;
+
+  let token = null;
+  if (t) {
+    try {
+      token = await getToken(t);
+    } catch {}
+  }
+
+  // 1. Try proxy endpoint first
+  try {
+    const params = new URLSearchParams({ url });
+    if (token) {
+      params.set("token", token);
+      if (APP_KEY) params.set("key", APP_KEY);
+    }
+    const proxyUrl = `/api/proxy-image?${params.toString()}`;
+    const res = await fetch(proxyUrl);
+    if (res.ok) {
+      const blob = await res.blob();
+      return await blobToDataUrl(blob);
+    }
+  } catch (e) {
+    console.warn("Proxy image fetch failed:", e);
+  }
+
+  // 2. Direct fetch fallback (if image source allows CORS directly)
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const blob = await res.blob();
+      return await blobToDataUrl(blob);
+    }
+  } catch (e) {
+    console.warn("Direct image fetch failed:", e);
+  }
+
+  return url;
+}
+
 /**
  * @param selection `{ kind: "solid", hex }` | `{ kind: "gradient", angle, stops }` | `{ kind: "image", dataUrl, url }`
  * @param text optional `{ heading, subheading, size, color, align }`
  * @param badges optional array of `{ kind, x, y, color, ink, text }`, where
  *   `kind` is "label" | "member" | "due" and x/y are percentages of the cover
+ * @param t optional Trello Power-Up context for auth token
  * @returns {Promise<Blob>} PNG blob
  */
-export async function renderCover(selection, text, badges) {
+export async function renderCover(selection, text, badges, t) {
   const canvas = document.createElement("canvas");
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
@@ -51,7 +104,10 @@ export async function renderCover(selection, text, badges) {
     ctx.fillStyle = buildGradient(ctx, selection);
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
   } else if (selection.kind === "image") {
-    const src = selection.dataUrl || selection.url;
+    let src = selection.dataUrl;
+    if (!src && selection.url) {
+      src = await fetchImageAsDataUrl(selection.url, t);
+    }
     if (src) {
       const img = await loadImage(src);
       drawImageCover(ctx, img, 0, 0, WIDTH, HEIGHT);
@@ -312,10 +368,16 @@ function drawImageCover(ctx, img, x, y, w, h) {
   ctx.drawImage(img, sx, sy, sWidth, sHeight, x, y, w, h);
 }
 
-function loadImage(src) {
+export function loadImage(src) {
   return new Promise((resolve, reject) => {
+    if (!src) {
+      reject(new Error("No image source provided"));
+      return;
+    }
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    if (!src.startsWith("data:") && !src.startsWith("blob:")) {
+      img.crossOrigin = "anonymous";
+    }
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("Failed to load image for cover rendering"));
     img.src = src;
