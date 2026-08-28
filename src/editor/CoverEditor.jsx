@@ -23,6 +23,7 @@ import {
   BADGE,
 } from "../lib/coverRender.js";
 import { labelItems, memberItems, dueItem } from "../lib/cardItems.js";
+import { readableInk } from "../ui/palette.js";
 import {
   PaletteIcon,
   LayersIcon,
