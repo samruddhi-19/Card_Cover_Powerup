@@ -23,7 +23,6 @@ import {
   BADGE,
 } from "../lib/coverRender.js";
 import { labelItems, memberItems, dueItem } from "../lib/cardItems.js";
-import { readableInk } from "../ui/palette.js";
 import {
   PaletteIcon,
   LayersIcon,
@@ -33,7 +32,15 @@ import {
   CheckIcon,
   SpinnerIcon,
   TrashIcon,
+  AlertTriangleIcon,
+  RefreshIcon,
 } from "../ui/icons.jsx";
+import {
+  getCoverMeta,
+  saveCoverMeta,
+  detectCoverChanges,
+  syncBadgesWithCard,
+} from "../lib/syncDetector.js";
 import "./editor.css";
 
 const TABS = [
@@ -105,6 +112,10 @@ export default function CoverEditor({ t }) {
     align: "left",
   });
 
+  const [rawCard, setRawCard] = useState(null);
+  const [syncNotice, setSyncNotice] = useState(null);
+  const [syncSuccess, setSyncSuccess] = useState(false);
+
   // The card's own labels, members and due date — the tray is built from
   // these, never from placeholders.
   const [items, setItems] = useState({ labels: [], members: [], due: null });
@@ -128,6 +139,14 @@ export default function CoverEditor({ t }) {
 
   function removeBadge(id) {
     setBadges((prev) => prev.filter((badge) => badge.id !== id));
+  }
+
+  function handleSyncBadges() {
+    if (!rawCard) return;
+    setBadges((prev) => syncBadgesWithCard(prev, rawCard));
+    setSyncNotice(null);
+    setSyncSuccess(true);
+    setTimeout(() => setSyncSuccess(false), 3000);
   }
 
   function moveBadge(id, x, y) {
@@ -187,6 +206,7 @@ export default function CoverEditor({ t }) {
             "dueComplete"
           );
           if (card?.id) {
+            setRawCard(card);
             setItems({
               labels: labelItems(card.labels),
               members: memberItems(card.members),
@@ -206,6 +226,20 @@ export default function CoverEditor({ t }) {
             }
             setSize(card.cover?.size ?? settings.coverSize ?? "normal");
             setBrightness(card.cover?.brightness ?? "dark");
+
+            const meta = await getCoverMeta(t);
+            if (meta) {
+              if (meta.text && (meta.text.heading || meta.text.subheading)) {
+                setText((prev) => ({ ...prev, ...meta.text }));
+              }
+              if (meta.badges && meta.badges.length > 0) {
+                setBadges(meta.badges);
+                const changes = detectCoverChanges(card, meta);
+                if (changes.hasChanges) {
+                  setSyncNotice(changes);
+                }
+              }
+            }
 
             // Preselect the card's current colour or image so the preview opens
             // showing where the card stands, not a blank slate.
@@ -290,6 +324,8 @@ export default function CoverEditor({ t }) {
       const withText = hasText(text);
       const withBadges = hasBadges(badges);
 
+      let attachmentId = null;
+
       if (selection.trello && !withText && !withBadges) {
         setStatusText("Applying cover…");
         await setCardCover(t, cardId, { color: selection.trello, size, brightness });
@@ -303,12 +339,48 @@ export default function CoverEditor({ t }) {
           blob,
           coverFileName(selection)
         );
+        attachmentId = attachment.id;
         if (size === "full" || brightness !== "dark") {
           await setCardCover(t, cardId, { idAttachment: attachment.id, size, brightness }).catch(() => {});
         }
         // Prune old covers in the background without blocking modal close
         pruneGeneratedCovers(t, cardId, attachment.id).catch(() => {});
       }
+
+      await saveCoverMeta(t, {
+        attachmentId,
+        color: selection.color || selection.hex || selection.trello || null,
+        selection: {
+          kind: selection.kind,
+          id: selection.id,
+          label: selection.label,
+          hex: selection.hex,
+          stops: selection.stops,
+          angle: selection.angle,
+          trello: selection.trello,
+          url: selection.url || null,
+        },
+        text: withText ? text : null,
+        badges,
+        size,
+        brightness,
+        cardSnapshot: {
+          due: rawCard?.due || null,
+          dueComplete: Boolean(rawCard?.dueComplete),
+          labels: (rawCard?.labels || []).map((l) => ({
+            id: l.id,
+            name: l.name,
+            color: l.color,
+          })),
+          members: (rawCard?.members || []).map((m) => ({
+            id: m.id,
+            fullName: m.fullName,
+            username: m.username,
+            initials: m.initials,
+          })),
+        },
+      });
+
       saveSettings(t, { dynamicSync, coverSize: size }).catch(() => {});
       t.closeModal();
     } catch (e) {
@@ -603,6 +675,44 @@ export default function CoverEditor({ t }) {
           {tab === "text" && (
             <div role="tabpanel" id="ce-panel-text" aria-labelledby="ce-tab-text"
                  style={{ display: "grid", gap: 18 }}>
+              {syncNotice && syncNotice.hasChanges && (
+                <div className="ce-sync-notice ce-sync-notice--warning">
+                  <AlertTriangleIcon width={16} height={16} className="ce-sync-notice__icon" />
+                  <div className="ce-sync-notice__body">
+                    <p className="ce-sync-notice__title">Card details changed</p>
+                    <p className="ce-sync-notice__desc">
+                      {syncNotice.summary || "Due date, labels, or people changed on this card."}
+                    </p>
+                  </div>
+                  <div className="ce-sync-notice__actions">
+                    <button
+                      type="button"
+                      className="ce-btn ce-btn--ghost ce-btn--xs"
+                      onClick={handleSyncBadges}
+                      title="Update placed badges to match current card details"
+                    >
+                      <RefreshIcon width={12} height={12} />
+                      <span>Sync Badges</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="ce-sync-notice__close"
+                      onClick={() => setSyncNotice(null)}
+                      aria-label="Dismiss notice"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {syncSuccess && (
+                <div className="ce-sync-notice ce-sync-notice--success">
+                  <CheckIcon width={15} height={15} />
+                  <span>Badges updated to match card details.</span>
+                </div>
+              )}
+
               <p className="ce-note">
                 <TextIcon className="ce-note__icon" width={15} height={15} />
                 <span>

@@ -1,7 +1,20 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { getSettings } from "../lib/settings.js";
 import { swatchFor, labelFor, readableInk } from "./palette.js";
-import { ImageIcon, PlusIcon, SwapIcon } from "./icons.jsx";
+import {
+  ImageIcon,
+  PlusIcon,
+  SwapIcon,
+  AlertTriangleIcon,
+  RefreshIcon,
+  CheckIcon,
+  SpinnerIcon,
+} from "./icons.jsx";
+import {
+  getCoverMeta,
+  detectCoverChanges,
+  quickSyncCover,
+} from "../lib/syncDetector.js";
 import "./cover.css";
 
 // The card-back section is a summary plus two entry points. All editing
@@ -10,28 +23,47 @@ import "./cover.css";
 const MODAL = {
   title: "Card Cover",
   url: "./editor.html",
-  // Trello sets the modal's width itself; height is ours. Kept compact so the
-  // editor reads as a focused panel rather than taking over the screen — the
-  // right column scrolls if a tab needs more room.
   height: 620,
-  // Trello renders the modal's title bar itself, outside this iframe, so no
-  // CSS of ours can reach it. `accentColor` is the only lever: it sets that
-  // bar's background, and Trello picks white title text against a dark one.
-  // Matching the editor's own ground makes the bar read as part of the panel
-  // instead of a washed-out strip above it.
   accentColor: "#1D2125",
 };
 
 export default function CoverStudio({ t }) {
   const [card, setCard] = useState(null);
   const [cover, setCover] = useState(null);
+  const [fullCardData, setFullCardData] = useState(null);
+  const [coverMeta, setCoverMeta] = useState(null);
+  const [changeInfo, setChangeInfo] = useState({ hasChanges: false, changes: [] });
+  const [dismissed, setDismissed] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncedJustNow, setSyncedJustNow] = useState(false);
+  const [syncError, setSyncError] = useState("");
   const [phase, setPhase] = useState("loading"); // loading | ready | unauthorized
 
   const load = useCallback(async () => {
     try {
-      const data = await t.card("id", "name", "cover");
+      const data = await t.card(
+        "id",
+        "name",
+        "cover",
+        "labels",
+        "members",
+        "due",
+        "dueComplete"
+      );
       setCard({ id: data.id, name: data.name ?? "" });
+      setFullCardData(data);
       setCover(normalizeCover(data.cover));
+
+      const meta = await getCoverMeta(t);
+      setCoverMeta(meta);
+
+      if (meta && meta.badges && meta.badges.length > 0) {
+        const changes = detectCoverChanges(data, meta);
+        setChangeInfo(changes);
+      } else {
+        setChangeInfo({ hasChanges: false, changes: [] });
+      }
+
       setPhase("ready");
     } catch {
       setPhase("ready");
@@ -40,20 +72,15 @@ export default function CoverStudio({ t }) {
 
   useEffect(() => {
     load();
-    // Trello calls this whenever the card changes, which is how the summary
-    // catches up after the modal applies a cover and closes.
     t.render(() => load());
     getSettings(t).catch(() => {});
   }, [t, load]);
 
-  // The card-back iframe keeps its initial height until we measure it.
+  // Adjust iframe height whenever cover state, change alert or sync status changes
   useLayoutEffect(() => {
     t.sizeTo("#root").catch(() => {});
-  }, [t, phase, cover]);
+  }, [t, phase, cover, changeInfo, dismissed, syncedJustNow, syncing]);
 
-  // The modal is its own iframe, so it can't rely on inheriting the card
-  // context this section was rendered with. Passing the card explicitly is
-  // what guarantees Apply writes to the card you actually opened.
   function openEditor() {
     return t.modal({
       ...MODAL,
@@ -65,6 +92,26 @@ export default function CoverStudio({ t }) {
     });
   }
 
+  async function handleQuickSync() {
+    if (!card?.id || !coverMeta || syncing) return;
+    setSyncing(true);
+    setSyncError("");
+    try {
+      const updatedMeta = await quickSyncCover(t, card.id, coverMeta, fullCardData);
+      setCoverMeta(updatedMeta);
+      setChangeInfo({ hasChanges: false, changes: [] });
+      setSyncedJustNow(true);
+      setTimeout(() => {
+        setSyncedJustNow(false);
+      }, 3500);
+    } catch (e) {
+      console.error("Failed to quick sync cover", e);
+      setSyncError("Couldn't sync automatically. Try opening the editor.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   if (phase === "loading") {
     return (
       <div className="cc-root">
@@ -74,6 +121,11 @@ export default function CoverStudio({ t }) {
   }
 
   const swatch = cover?.color ? swatchFor(cover.color) : null;
+  const showWarning =
+    changeInfo.hasChanges &&
+    !dismissed &&
+    cover &&
+    coverMeta?.badges?.length > 0;
 
   return (
     <div className="cc-root">
@@ -128,6 +180,79 @@ export default function CoverStudio({ t }) {
           )}
         </div>
       </div>
+
+      {syncedJustNow && (
+        <div className="cc-alert cc-alert--success">
+          <div className="cc-alert__icon">
+            <CheckIcon width={15} height={15} />
+          </div>
+          <div className="cc-alert__content">
+            <p className="cc-alert__title">Cover updated</p>
+            <p className="cc-alert__desc">
+              Cover badges were refreshed with current card details.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {showWarning && (
+        <div className="cc-alert cc-alert--warning">
+          <div className="cc-alert__icon">
+            <AlertTriangleIcon width={16} height={16} />
+          </div>
+          <div className="cc-alert__content">
+            <div className="cc-alert__header">
+              <span className="cc-alert__title">Cover out of date</span>
+              <span className="cc-alert__badge">Card changed</span>
+            </div>
+            <p className="cc-alert__desc">
+              {changeInfo.changes.map((c) => c.detail).join(" · ") ||
+                "Due date, labels, or people changed on this card."}
+            </p>
+          </div>
+
+          <div className="cc-alert__actions">
+            <button
+              type="button"
+              className="cc-btn cc-btn--sm cc-btn--sync"
+              onClick={handleQuickSync}
+              disabled={syncing}
+              title="Re-render cover with latest card details"
+            >
+              {syncing ? (
+                <SpinnerIcon width={13} height={13} />
+              ) : (
+                <RefreshIcon width={13} height={13} />
+              )}
+              <span>{syncing ? "Syncing…" : "Sync Cover"}</span>
+            </button>
+
+            <button
+              type="button"
+              className="cc-btn cc-btn--sm cc-btn--secondary"
+              onClick={openEditor}
+            >
+              Review
+            </button>
+
+            <button
+              type="button"
+              className="cc-alert__close"
+              onClick={() => setDismissed(true)}
+              aria-label="Dismiss warning"
+              title="Dismiss warning"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {syncError && (
+        <div className="cc-alert cc-alert--error">
+          <p className="cc-alert__desc">{syncError}</p>
+        </div>
+      )}
     </div>
   );
 }

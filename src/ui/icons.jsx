@@ -115,3 +115,25 @@ export function SpinnerIcon(props) {
     </svg>
   );
 }
+
+export function AlertTriangleIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M7.13 2.5a1 1 0 0 1 1.74 0l5.87 10.15A1 1 0 0 1 13.87 14H2.13a1 1 0 0 1-.87-1.35L7.13 2.5Z" />
+      <path d="M8 6v4" />
+      <circle cx="8" cy="11.8" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function RefreshIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M13.5 2.5v3.5h-3.5" />
+      <path d="M2.5 13.5v-3.5h3.5" />
+      <path d="M13.3 6A5.5 5.5 0 0 0 3.7 4.8L2.5 6" />
+      <path d="M2.7 10a5.5 5.5 0 0 0 9.6 1.2l1.2-1.2" />
+    </svg>
+  );
+}
+
