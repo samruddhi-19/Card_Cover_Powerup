@@ -73,3 +73,36 @@ export function gradientCss(gradient) {
 export function coverFileName(selection) {
   return `card-cover-${selection.id}.png`;
 }
+
+/**
+ * Reconstructs the clean background selection from a generated cover filename or URL.
+ */
+export function resolveSelectionFromAttachment(fileNameOrUrl) {
+  if (!fileNameOrUrl) return null;
+  const match = fileNameOrUrl.match(/card-cover-([\w-]+)\.png/);
+  if (!match || !match[1]) return null;
+
+  const id = match[1];
+
+  const trello = TRELLO_COLORS.find((c) => c.id === id || c.trello === id);
+  if (trello) return { kind: "solid", ...trello };
+
+  const solid = solidById(id);
+  if (solid) return { kind: "solid", ...solid };
+
+  const gradient = gradientById(id);
+  if (gradient) return { kind: "gradient", ...gradient };
+
+  if (id.startsWith("custom-")) {
+    const hex = `#${id.replace("custom-", "")}`;
+    return {
+      kind: "solid",
+      id,
+      label: hex.toUpperCase(),
+      hex,
+    };
+  }
+
+  return null;
+}
+
